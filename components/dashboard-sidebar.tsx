@@ -17,27 +17,27 @@ export function DashboardSidebar({ open, setOpen }: DashboardSidebarProps) {
   const routes = [
     {
       name: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: Home,
     },
     {
       name: "Users",
-      href: "/users",
+      href: "/dashboard/users",
       icon: Users,
     },
     {
       name: "Transactions",
-      href: "/transactions",
+      href: "/dashboard/transactions",
       icon: CreditCard,
     },
     {
       name: "Fraud & Chargeback",
-      href: "/insights",
+      href: "/dashboard/insights",
       icon: AlertCircle,
     },
     {
       name: "Settings",
-      href: "/settings",
+      href: "/dashboard/settings",
       icon: Settings,
     },
   ]
