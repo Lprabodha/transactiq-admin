@@ -1,7 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DashboardCharts } from "@/components/dashboard-charts"
-import { RecentActivity } from "@/components/recent-activity"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  FraudTrend,
+  RiskByGateway,
+  ChargebackPrediction,
+} from "@/components/dashboard-charts";
+import { RecentActivity } from "@/components/recent-activity";
 
 export default function DashboardPage() {
   return (
@@ -9,7 +19,8 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Monitor and analyze your fraud detection and chargeback prediction metrics.
+          Monitor and analyze your fraud detection and chargeback prediction
+          metrics.
         </p>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
@@ -20,9 +31,11 @@ export default function DashboardPage() {
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-gradient-to-br from-primary-500 to-primary-600 text-white">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Transactions
+                </CardTitle>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -31,19 +44,23 @@ export default function DashboardPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  className="h-4 w-4 text-white"
+                  className="h-4 w-4 text-muted-foreground"
                 >
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">12,543</div>
-                <p className="text-xs text-white/80">+18.2% from last month</p>
+                <p className="text-xs text-muted-foreground">
+                  +18.2% from last month
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Fraud Risk Alerts</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Fraud Risk Alerts
+                </CardTitle>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -61,12 +78,16 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">234</div>
-                <p className="text-xs text-muted-foreground">+4.1% from yesterday</p>
+                <p className="text-xs text-muted-foreground">
+                  +4.1% from yesterday
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Chargebacks Predicted</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Chargebacks Predicted
+                </CardTitle>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -83,12 +104,16 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">89</div>
-                <p className="text-xs text-muted-foreground">-2.5% from last week</p>
+                <p className="text-xs text-muted-foreground">
+                  -2.5% from last week
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Projected MRR</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Projected MRR
+                </CardTitle>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -104,7 +129,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">$45,231</div>
-                <p className="text-xs text-muted-foreground">+5.2% from last month</p>
+                <p className="text-xs text-muted-foreground">
+                  +5.2% from last month
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -112,19 +139,23 @@ export default function DashboardPage() {
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Fraud Trend</CardTitle>
-                <CardDescription>Daily fraud detection rate over the past 30 days</CardDescription>
+                <CardDescription>
+                  Daily fraud detection rate over the past 30 days
+                </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                {/* <DashboardCharts.FraudTrend /> */}
+                <FraudTrend />
               </CardContent>
             </Card>
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Risk Level by Gateway</CardTitle>
-                <CardDescription>Comparison of risk levels across payment gateways</CardDescription>
+                <CardDescription>
+                  Comparison of risk levels across payment gateways
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* <DashboardCharts.RiskByGateway /> */}
+                <RiskByGateway />
               </CardContent>
             </Card>
           </div>
@@ -132,7 +163,9 @@ export default function DashboardPage() {
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest webhook events and system notifications</CardDescription>
+                <CardDescription>
+                  Latest webhook events and system notifications
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <RecentActivity />
@@ -141,10 +174,12 @@ export default function DashboardPage() {
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Chargeback Prediction</CardTitle>
-                <CardDescription>Predicted chargebacks by transaction type</CardDescription>
+                <CardDescription>
+                  Predicted chargebacks by transaction type
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* <DashboardCharts.ChargebackPrediction /> */}
+                <ChargebackPrediction />
               </CardContent>
             </Card>
           </div>
@@ -154,22 +189,30 @@ export default function DashboardPage() {
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Advanced Analytics</CardTitle>
-                <CardDescription>Detailed analysis of fraud patterns and trends</CardDescription>
+                <CardDescription>
+                  Detailed analysis of fraud patterns and trends
+                </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
                 <div className="h-[300px] flex items-center justify-center border rounded-md">
-                  <p className="text-muted-foreground">Advanced analytics content</p>
+                  <p className="text-muted-foreground">
+                    Advanced analytics content
+                  </p>
                 </div>
               </CardContent>
             </Card>
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Risk Distribution</CardTitle>
-                <CardDescription>Distribution of risk scores across transactions</CardDescription>
+                <CardDescription>
+                  Distribution of risk scores across transactions
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center border rounded-md">
-                  <p className="text-muted-foreground">Risk distribution chart</p>
+                  <p className="text-muted-foreground">
+                    Risk distribution chart
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +223,9 @@ export default function DashboardPage() {
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Generated Reports</CardTitle>
-                <CardDescription>Access and download system-generated reports</CardDescription>
+                <CardDescription>
+                  Access and download system-generated reports
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center border rounded-md">
@@ -191,11 +236,15 @@ export default function DashboardPage() {
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Schedule Report</CardTitle>
-                <CardDescription>Configure automated report generation</CardDescription>
+                <CardDescription>
+                  Configure automated report generation
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center border rounded-md">
-                  <p className="text-muted-foreground">Report scheduling form</p>
+                  <p className="text-muted-foreground">
+                    Report scheduling form
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -203,5 +252,5 @@ export default function DashboardPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

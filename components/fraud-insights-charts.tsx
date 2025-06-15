@@ -207,8 +207,8 @@ const GATEWAY_COLORS = {
   Combined: "#6b7280",
 }
 
-export const FraudInsightsCharts = {
-  RiskDistribution: () => (
+export function RiskDistribution() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={riskDistributionData} margin={{ top: 5, right: 30, left: 0, bottom: 25 }}>
@@ -274,76 +274,78 @@ export const FraudInsightsCharts = {
         </BarChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  RiskByCountry: () => {
-    const sortedData = [...riskByCountryData].sort((a, b) => b.avgRisk - a.avgRisk)
+export function RiskByCountry() {
+  const sortedData = [...riskByCountryData].sort((a, b) => b.avgRisk - a.avgRisk)
 
-    return (
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-            <defs>
-              <linearGradient id="colorRisk" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.8} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-            <XAxis type="number" stroke="#6b7280" axisLine={false} tickLine={false} />
-            <YAxis
-              type="category"
-              dataKey="country"
-              width={80}
-              stroke="#6b7280"
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(country) => {
-                const countryData = riskByCountryData.find((c) => c.country === country)
-                return countryData ? `${countryData.flag} ${country}` : country
-              }}
-            />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="rounded-lg border bg-background p-3 shadow-md">
-                      <div className="grid gap-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-muted-foreground">Country:</span>
-                          <span className="font-medium">
-                            {payload[0].payload.flag} {payload[0].payload.country} ({payload[0].payload.code})
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <span className="h-3 w-3 rounded-full bg-[#10b981]" />
-                            Risk Score:
-                          </span>
-                          <span className="font-medium">{payload[0].value}%</span>
-                        </div>
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+          <defs>
+            <linearGradient id="colorRisk" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.8} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
+          <XAxis type="number" stroke="#6b7280" axisLine={false} tickLine={false} />
+          <YAxis
+            type="category"
+            dataKey="country"
+            width={80}
+            stroke="#6b7280"
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(country) => {
+              const countryData = riskByCountryData.find((c) => c.country === country)
+              return countryData ? `${countryData.flag} ${country}` : country
+            }}
+          />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="rounded-lg border bg-background p-3 shadow-md">
+                    <div className="grid gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Country:</span>
+                        <span className="font-medium">
+                          {payload[0].payload.flag} {payload[0].payload.country} ({payload[0].payload.code})
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <span className="h-3 w-3 rounded-full bg-[#10b981]" />
+                          Risk Score:
+                        </span>
+                        <span className="font-medium">{payload[0].value}%</span>
                       </div>
                     </div>
-                  )
-                }
-                return null
-              }}
-            />
-            <Bar
-              dataKey="avgRisk"
-              fill="url(#colorRisk)"
-              radius={[0, 4, 4, 0]}
-              barSize={20}
-              animationDuration={1500}
-              isAnimationActive={true}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    )
-  },
+                  </div>
+                )
+              }
+              return null
+            }}
+          />
+          <Bar
+            dataKey="avgRisk"
+            fill="url(#colorRisk)"
+            radius={[0, 4, 4, 0]}
+            barSize={20}
+            animationDuration={1500}
+            isAnimationActive={true}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
-  ChargebackTrend: () => (
+export function ChargebackTrend() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chargebackTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -414,9 +416,11 @@ export const FraudInsightsCharts = {
         </AreaChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  ChargebackByPaymentMethod: () => (
+export function ChargebackByPaymentMethod() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -463,9 +467,11 @@ export const FraudInsightsCharts = {
         </PieChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  FeatureImportance: () => (
+export function FeatureImportance() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
@@ -527,71 +533,73 @@ export const FraudInsightsCharts = {
         </RadialBarChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  ConfusionMatrix: () => {
-    const total = confusionMatrixData.reduce((sum, item) => sum + item.value, 0)
-    const data = confusionMatrixData.map((item, index) => ({
-      ...item,
-      percentage: ((item.value / total) * 100).toFixed(1),
-      fill: COLORS[index % COLORS.length],
-    }))
+export function ConfusionMatrix() {
+  const total = confusionMatrixData.reduce((sum, item) => sum + item.value, 0)
+  const data = confusionMatrixData.map((item, index) => ({
+    ...item,
+    percentage: ((item.value / total) * 100).toFixed(1),
+    fill: COLORS[index % COLORS.length],
+  }))
 
-    return (
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={80}
-              innerRadius={50}
-              fill="#8884d8"
-              dataKey="value"
-              label={({ name, percentage }) => `${name}: ${percentage}%`}
-              paddingAngle={5}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value) => `${value} (${((value / total) * 100).toFixed(1)}%)`}
-              labelFormatter={(index) => data[index].name}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="rounded-lg border bg-background p-3 shadow-md">
-                      <div className="flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill }} />
-                        <span className="font-medium">{payload[0].payload.name}</span>
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius={80}
+            innerRadius={50}
+            fill="#8884d8"
+            dataKey="value"
+            label={({ name, percentage }) => `${name}: ${percentage}%`}
+            paddingAngle={5}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value) => `${value} (${((value / total) * 100).toFixed(1)}%)`}
+            labelFormatter={(index) => data[index].name}
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="rounded-lg border bg-background p-3 shadow-md">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill }} />
+                      <span className="font-medium">{payload[0].payload.name}</span>
+                    </div>
+                    <div className="mt-1 grid gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Count:</span>
+                        <span className="font-medium">{payload[0].payload.value}</span>
                       </div>
-                      <div className="mt-1 grid gap-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-muted-foreground">Count:</span>
-                          <span className="font-medium">{payload[0].payload.value}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-muted-foreground">Percentage:</span>
-                          <span className="font-medium">{payload[0].payload.percentage}%</span>
-                        </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Percentage:</span>
+                        <span className="font-medium">{payload[0].payload.percentage}%</span>
                       </div>
                     </div>
-                  )
-                }
-                return null
-              }}
-            />
-            <Legend formatter={(value, entry) => <span className="text-sm">{value}</span>} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    )
-  },
+                  </div>
+                )
+              }
+              return null
+            }}
+          />
+          <Legend formatter={(value, entry) => <span className="text-sm">{value}</span>} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
-  ROCCurve: () => (
+export function ROCCurve() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -665,9 +673,11 @@ export const FraudInsightsCharts = {
         </LineChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  ModelPerformanceRadar: () => (
+export function ModelPerformanceRadar() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
@@ -722,9 +732,11 @@ export const FraudInsightsCharts = {
         </RadarChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  ModelHistory: () => (
+export function ModelHistory() {
+  return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
@@ -763,5 +775,5 @@ export const FraudInsightsCharts = {
         </tbody>
       </table>
     </div>
-  ),
+  )
 }

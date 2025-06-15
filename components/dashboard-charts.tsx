@@ -47,17 +47,28 @@ const chargebackPredictionData = [
   { name: "Digital Wallet", value: 10 },
 ]
 
-const COLORS = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0"]
+const CHART_COLORS = {
+  primary: "#10b981",
+  secondary: "#3b82f6",
+  success: "#10b981",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  info: "#06b6d4",
+  light: "#6ee7b7",
+  muted: "#6b7280",
+}
 
-export const DashboardCharts = {
-  FraudTrend: () => (
+const PIE_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#06b6d4"]
+
+export function FraudTrend() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={fraudTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorFraudRate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+              <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.8} />
+              <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0.1} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -85,7 +96,7 @@ export const DashboardCharts = {
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <span className="h-3 w-3 rounded-full bg-[#10b981]" />
+                          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: CHART_COLORS.primary }} />
                           Fraud Rate:
                         </span>
                         <span className="font-medium">{payload[0].value}%</span>
@@ -100,19 +111,21 @@ export const DashboardCharts = {
           <Area
             type="monotone"
             dataKey="fraudRate"
-            stroke="#10b981"
+            stroke={CHART_COLORS.primary}
             strokeWidth={3}
             fillOpacity={1}
             fill="url(#colorFraudRate)"
-            dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
-            activeDot={{ r: 6, fill: "#10b981", strokeWidth: 0 }}
+            dot={{ r: 4, fill: CHART_COLORS.primary, strokeWidth: 0 }}
+            activeDot={{ r: 6, fill: CHART_COLORS.primary, strokeWidth: 0 }}
           />
         </AreaChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  RiskByGateway: () => (
+export function RiskByGateway() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={riskByGatewayData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -134,10 +147,10 @@ export const DashboardCharts = {
                               style={{
                                 backgroundColor:
                                   entry.name === "lowRisk"
-                                    ? "#10b981"
+                                    ? CHART_COLORS.success
                                     : entry.name === "mediumRisk"
-                                      ? "#f59e0b"
-                                      : "#ef4444",
+                                      ? CHART_COLORS.warning
+                                      : CHART_COLORS.danger,
                               }}
                             />
                             {entry.name === "lowRisk"
@@ -162,15 +175,24 @@ export const DashboardCharts = {
               return value === "lowRisk" ? "Low Risk" : value === "mediumRisk" ? "Medium Risk" : "High Risk"
             }}
           />
-          <Bar dataKey="lowRisk" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} name="lowRisk" />
-          <Bar dataKey="mediumRisk" stackId="a" fill="#f59e0b" name="mediumRisk" />
-          <Bar dataKey="highRisk" stackId="a" fill="#ef4444" name="highRisk" />
+          <Bar
+            dataKey="lowRisk"
+            stackId="a"
+            fill={CHART_COLORS.success}
+            radius={[4, 4, 0, 0]}
+            barSize={40}
+            name="lowRisk"
+          />
+          <Bar dataKey="mediumRisk" stackId="a" fill={CHART_COLORS.warning} name="mediumRisk" />
+          <Bar dataKey="highRisk" stackId="a" fill={CHART_COLORS.danger} name="highRisk" />
         </BarChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
+}
 
-  ChargebackPrediction: () => (
+export function ChargebackPrediction() {
+  return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -187,7 +209,7 @@ export const DashboardCharts = {
             paddingAngle={5}
           >
             {chargebackPredictionData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
@@ -199,7 +221,7 @@ export const DashboardCharts = {
                     <div className="flex items-center gap-2">
                       <span
                         className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: COLORS[payload[0].payload.index % COLORS.length] }}
+                        style={{ backgroundColor: PIE_COLORS[payload[0].payload.index % PIE_COLORS.length] }}
                       />
                       <span className="font-medium">{payload[0].name}</span>
                     </div>
@@ -217,5 +239,5 @@ export const DashboardCharts = {
         </PieChart>
       </ResponsiveContainer>
     </div>
-  ),
+  )
 }

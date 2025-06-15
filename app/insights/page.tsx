@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FraudInsightsCharts } from "@/components/fraud-insights-charts"
+import { RiskDistribution, RiskByCountry, ChargebackTrend, ChargebackByPaymentMethod, FeatureImportance, ConfusionMatrix, ROCCurve, ModelPerformanceRadar, ModelHistory } from "@/components/fraud-insights-charts"
 import { FraudRiskTable } from "@/components/fraud-risk-table"
 import { ChargebackPredictionTable } from "@/components/chargeback-prediction-table"
 import { ModelPerformanceMetrics } from "@/components/model-performance-metrics"
@@ -85,7 +85,7 @@ export default function InsightsPage() {
                 <CardDescription>Distribution of risk scores across transactions</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <FraudInsightsCharts.RiskDistribution />
+                <RiskDistribution />
               </CardContent>
             </Card>
             <Card className="col-span-3 shadow-sm">
@@ -94,7 +94,7 @@ export default function InsightsPage() {
                 <CardDescription>Average fraud risk score by country</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.RiskByCountry />
+                <RiskByCountry />
               </CardContent>
             </Card>
           </div>
@@ -173,7 +173,7 @@ export default function InsightsPage() {
                 <CardDescription>Monthly chargeback rate by gateway</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <FraudInsightsCharts.ChargebackTrend />
+                <ChargebackTrend />
               </CardContent>
             </Card>
             <Card className="col-span-3 shadow-sm">
@@ -182,7 +182,7 @@ export default function InsightsPage() {
                 <CardDescription>Distribution across payment methods</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.ChargebackByPaymentMethod />
+                <ChargebackByPaymentMethod />
               </CardContent>
             </Card>
           </div>
@@ -215,7 +215,7 @@ export default function InsightsPage() {
                 <CardDescription>Top factors influencing fraud detection</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <FraudInsightsCharts.FeatureImportance />
+                <FeatureImportance />
               </CardContent>
             </Card>
           </div>
@@ -227,7 +227,7 @@ export default function InsightsPage() {
                 <CardDescription>Visualization of model prediction accuracy</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.ConfusionMatrix />
+                <ConfusionMatrix />
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -236,7 +236,7 @@ export default function InsightsPage() {
                 <CardDescription>Model metrics by payment gateway</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.ModelPerformanceRadar />
+                <ModelPerformanceRadar />
               </CardContent>
             </Card>
           </div>
@@ -248,7 +248,7 @@ export default function InsightsPage() {
                 <CardDescription>Model discrimination ability</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.ROCCurve />
+                <ROCCurve />
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -257,7 +257,7 @@ export default function InsightsPage() {
                 <CardDescription>Performance metrics across model versions</CardDescription>
               </CardHeader>
               <CardContent>
-                <FraudInsightsCharts.ModelHistory />
+                <ModelHistory />
               </CardContent>
             </Card>
           </div>
