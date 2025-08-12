@@ -5,9 +5,17 @@ import type React from "react"
 import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { usePathname } from "next/navigation"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const pathname = usePathname()
+
+  const hideLayout = pathname === "/register" || pathname === "/login"
+
+  if (hideLayout) {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

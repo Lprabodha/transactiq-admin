@@ -1,20 +1,28 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Shield, Mail, User, Building } from "lucide-react"
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, Shield, Mail, User, Building } from "lucide-react";
+import { signUp } from "@/lib/auth-client";
 
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,33 +31,50 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     // Basic validation
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match")
-      setIsLoading(false)
-      return
+      alert("Passwords do not match");
+      setIsLoading(false);
+      return;
     }
 
-    // Simulate registration process
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await signUp.email(
+      {
+        name: formData.firstName,
+        email: formData.email,
+        password: formData.password,
+        image: undefined,
+      },
+      {
+        onRequest: () => {
+        },
+        onSuccess: (ctx) => {
+          console.log("onSuccess", ctx);
+          setIsLoading(false);
 
-    // Here you would typically handle the actual registration
-    console.log("Registration attempt:", formData)
-    setIsLoading(false)
-  }
+          router.push("/");
+        },
+        onError: (ctx) => {
+          setIsLoading(false);
+        },
+      }
+    );
+
+    console.log("Registration attempt:", formData);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -61,7 +86,9 @@ export default function RegisterPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Create account</CardTitle>
-          <CardDescription className="text-gray-600">Get started with Smart Fraud Detection</CardDescription>
+          <CardDescription className="text-gray-600">
+            Get started with Smart Fraud Detection
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -205,7 +232,12 @@ export default function RegisterPage() {
               <Checkbox
                 id="terms"
                 checked={formData.agreeToTerms}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, agreeToTerms: checked as boolean }))}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    agreeToTerms: checked as boolean,
+                  }))
+                }
                 required
               />
               <Label htmlFor="terms" className="text-sm">
@@ -234,7 +266,9 @@ export default function RegisterPage() {
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">OR CONTINUE WITH</span>
+              <span className="bg-white px-2 text-gray-500">
+                OR CONTINUE WITH
+              </span>
             </div>
           </div>
 
@@ -269,5 +303,5 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

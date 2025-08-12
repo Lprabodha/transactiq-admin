@@ -1,43 +1,72 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Shield, Mail } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, Shield, Mail } from "lucide-react";
+import { signIn } from "@/lib/auth-client";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     // Simulate login process
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await signIn.email(
+      { email: formData.email, password: formData.password },
+      {
+        onSuccess: () => {
+          // toast({
+          //   title: "Login Successful",
+          //   description: "Welcome back!",
+          // });
+          router.push("/");
+        },
+        onError: (ctx) => {
+          // setError(ctx.error.message);
+          setIsLoading(false);
+          // toast({
+          //   title: "Login Failed",
+          //   description: "Invalid email or password. Please try again.",
+          //   variant: "destructive",
+          // });
+        },
+      }
+    );
 
     // Here you would typically handle the actual login
-    console.log("Login attempt:", formData)
-    setIsLoading(false)
-  }
+    console.log("Login attempt:", formData);
+    setIsLoading(false);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -49,7 +78,9 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription className="text-gray-600">Sign in to your Smart Fraud Detection account</CardDescription>
+          <CardDescription className="text-gray-600">
+            Sign in to your Smart Fraud Detection account
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,13 +139,21 @@ export default function LoginPage() {
                 <Checkbox
                   id="remember"
                   checked={formData.rememberMe}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, rememberMe: checked as boolean }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      rememberMe: checked as boolean,
+                    }))
+                  }
                 />
                 <Label htmlFor="remember" className="text-sm">
                   Remember me
                 </Label>
               </div>
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-600 hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -133,7 +172,9 @@ export default function LoginPage() {
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">OR CONTINUE WITH</span>
+              <span className="bg-white px-2 text-gray-500">
+                OR CONTINUE WITH
+              </span>
             </div>
           </div>
 
@@ -168,5 +209,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
