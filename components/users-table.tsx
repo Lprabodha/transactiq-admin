@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MoreHorizontal, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,9 +15,10 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AddUserDialog } from "@/components/add-user-dialog"
+import { ApiService, Customer } from "@/lib/api-service"
 
-// Sample user data
-const users = [
+// Sample user data (fallback)
+const sampleUsers = [
   {
     id: "1",
     name: "John Doe",
@@ -56,22 +57,136 @@ const users = [
 ]
 
 export function UsersTable() {
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredUsers = users.filter(
+  // Fetch customers from API
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        setLoading(true);
+        const response = await ApiService.getCustomers({ limit: 100 });
+        
+        if (response.success && response.data) {
+          setCustomers(response.data);
+        } else {
+          setError(response.error || 'Failed to fetch customers');
+          // Fallback to sample data
+          setCustomers(sampleUsers.map(u => ({
+            _id: u.id,
+            email: u.email,
+            name: u.name,
+            phone: null,
+            currency: 'usd',
+            country: null,
+            address_line1: null,
+            address_line2: null,
+            city: null,
+            state: null,
+            postal_code: null,
+            created_at: u.lastLogin,
+            delinquent: false,
+            default_payment_method: '',
+            balance: 0,
+            tax_info: { tax_id: null, type: null },
+            metadata: { onboarding_funnel: '1', type: '0', user_email: u.email, user_id: u.id },
+            invoice_prefix: 'USER',
+            gateway_customer_ids: { stripe: '' },
+          })));
+        }
+      } catch (err) {
+        setError('An error occurred while fetching customers');
+        console.error('Customers fetch error:', err);
+        // Fallback to sample data
+        setCustomers(sampleUsers.map(u => ({
+          _id: u.id,
+          email: u.email,
+          name: u.name,
+          phone: null,
+          currency: 'usd',
+          country: null,
+          address_line1: null,
+          address_line2: null,
+          city: null,
+          state: null,
+          postal_code: null,
+          created_at: u.lastLogin,
+          delinquent: false,
+          default_payment_method: '',
+          balance: 0,
+          tax_info: { tax_id: null, type: null },
+          metadata: { onboarding_funnel: '1', type: '0', user_email: u.email, user_id: u.id },
+          invoice_prefix: 'USER',
+          gateway_customer_ids: { stripe: '' },
+        })));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCustomers();
+  }, []);
+
+  const filteredUsers = customers.filter(
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase()),
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(date)
+    return ApiService.formatDate(dateString);
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
+            <div className="h-10 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-10 w-24 bg-muted animate-pulse rounded" />
+        </div>
+        <div className="rounded-md border">
+          <div className="h-96 flex items-center justify-center">
+            <p className="text-muted-foreground">Loading customers...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search customers..."
+              className="w-full pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => setIsAddUserOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Customer
+          </Button>
+        </div>
+        <div className="rounded-md border">
+          <div className="h-96 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-red-600 mb-2">Error loading customers</p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -79,17 +194,17 @@ export function UsersTable() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search users..."
-            className="w-full pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+                      <Input
+              type="search"
+              placeholder="Search customers..."
+              className="w-full pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
         </div>
         <Button onClick={() => setIsAddUserOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+          Add Customer
         </Button>
       </div>
       <div className="rounded-md border">
@@ -98,24 +213,24 @@ export function UsersTable() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Last Login</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow key={user._id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge
-                    variant={user.role === "Admin" ? "default" : user.role === "Analyst" ? "secondary" : "outline"}
+                    variant={user.delinquent ? "destructive" : "default"}
                   >
-                    {user.role}
+                    {user.delinquent ? "Delinquent" : "Active"}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatDate(user.lastLogin)}</TableCell>
+                <TableCell>{formatDate(user.created_at)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -126,10 +241,10 @@ export function UsersTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit user</DropdownMenuItem>
-                      <DropdownMenuItem>Change role</DropdownMenuItem>
+                      <DropdownMenuItem>View details</DropdownMenuItem>
+                      <DropdownMenuItem>Edit customer</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete user</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

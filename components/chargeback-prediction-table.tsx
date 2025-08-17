@@ -80,12 +80,24 @@ export function ChargebackPredictionTable() {
     isSafe: true,
   })
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+  const formatDate = (dateString: string | null | undefined) => {
+    // Handle null, undefined, or empty string
+    if (!dateString) {
+      return 'N/A';
+    }
+
+    const date = new Date(dateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date value:', dateString);
+      return 'Invalid Date';
+    }
+    
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(date)
+    }).format(date);
   }
 
   const formatCurrency = (amount: number, currency: string) => {

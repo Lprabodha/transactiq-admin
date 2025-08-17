@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { AlertCircle, ChevronLeft, CreditCard, Home, Settings, Users } from "lucide-react"
+import { AlertCircle, ChevronLeft, CreditCard, Home, Settings, Users, UserCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -21,9 +21,9 @@ export function DashboardSidebar({ open, setOpen }: DashboardSidebarProps) {
       icon: Home,
     },
     {
-      name: "Users",
+      name: "Customers",
       href: "/users",
-      icon: Users,
+      icon: UserCheck,
     },
     {
       name: "Transactions",
