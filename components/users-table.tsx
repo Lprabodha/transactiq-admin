@@ -242,7 +242,6 @@ export function UsersTable() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem>View details</DropdownMenuItem>
-                      <DropdownMenuItem>Edit customer</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
                     </DropdownMenuContent>

@@ -16,8 +16,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { AddUserDialog } from "@/components/add-user-dialog"
 import { CustomerDetailsDialog } from "@/components/customer-details-dialog"
+import { CustomerTransactionsDialog } from "@/components/customer-transactions-dialog"
+import { TransactionDetailsDialog } from "@/components/transaction-details-dialog"
 import { ClientOnly } from "@/components/client-only"
-import { ApiService, type Customer } from "@/lib/api-service"
+import { ApiService, type Customer, type Transaction } from "@/lib/api-service"
 
 export function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -28,6 +30,9 @@ export function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isTransactionsOpen, setIsTransactionsOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [isTransactionDetailsOpen, setIsTransactionDetailsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -128,6 +133,16 @@ export function CustomersTable() {
   const handleViewDetails = (customer: Customer) => {
     setSelectedCustomer(customer)
     setIsDetailsOpen(true)
+  }
+
+  const handleViewTransactions = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setIsTransactionsOpen(true)
+  }
+
+  const handleViewTransactionDetails = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsTransactionDetailsOpen(true)
   }
 
   const handleSearch = (query: string) => {
@@ -352,8 +367,7 @@ export function CustomersTable() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleViewDetails(customer)}>View details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit customer</DropdownMenuItem>
-                        <DropdownMenuItem>View transactions</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewTransactions(customer)}>View transactions</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -415,6 +429,20 @@ export function CustomersTable() {
         <AddUserDialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen} />
 
         <CustomerDetailsDialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen} customer={selectedCustomer} />
+
+        <CustomerTransactionsDialog 
+          open={isTransactionsOpen} 
+          onOpenChange={setIsTransactionsOpen} 
+          customer={selectedCustomer}
+          onViewTransactionDetails={handleViewTransactionDetails}
+        />
+
+        <TransactionDetailsDialog
+          open={isTransactionDetailsOpen}
+          onOpenChange={setIsTransactionDetailsOpen}
+          transactionId={selectedTransaction?._id || null}
+          transaction={selectedTransaction}
+        />
       </div>
     </ClientOnly>
   )
