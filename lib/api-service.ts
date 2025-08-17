@@ -45,6 +45,24 @@ export interface DashboardStats {
   };
 }
 
+export interface TransactionRecommendations {
+  transaction_id: string;
+  created_at: string;
+  priority: string;
+  summary: {
+    fraud_detected: number;
+    fraud_confidence: number;
+    fraud_level: string;
+    chargeback_predicted: number;
+    chargeback_confidence: number;
+    amount: number;
+    currency: string;
+  };
+  reasons: string[];
+  recommended_actions: string[];
+  ttl_days: number;
+}
+
 export interface Transaction {
   _id: string;
   transaction_id: string;
@@ -86,6 +104,7 @@ export interface Transaction {
   chargeback_confidence: number;
   chargeback_predicted: boolean;
   updated_at: string;
+  recommendations?: TransactionRecommendations;
 }
 
 export interface Customer {
@@ -468,5 +487,117 @@ export class ApiService {
       default:
         return 'text-gray-600';
     }
+  }
+
+  // Location enhancement methods
+  static async getEnhancedCustomerData(customer: Customer): Promise<Customer & { enhancedLocation?: string }> {
+    // If customer has complete location, return as is
+    if (customer.country && customer.city) {
+      return {
+        ...customer,
+        enhancedLocation: [customer.city, customer.state, customer.country].filter(Boolean).join(', ')
+      };
+    }
+
+    // If customer location is incomplete, try to get location from their transactions
+    try {
+      const transactionsResponse = await this.getTransactions({ 
+        email: customer.email, 
+        limit: 10 
+      });
+
+      if (transactionsResponse.success && transactionsResponse.data && transactionsResponse.data.length > 0) {
+        // Get the most recent transaction with billing address
+        const transactionWithLocation = transactionsResponse.data.find(t => 
+          t.billing_address_country || t.billing_address_city
+        );
+
+        if (transactionWithLocation) {
+          const enhancedLocation = [
+            transactionWithLocation.billing_address_city,
+            transactionWithLocation.billing_address_state,
+            transactionWithLocation.billing_address_country
+          ].filter(Boolean).join(', ');
+
+          return {
+            ...customer,
+            enhancedLocation: enhancedLocation || 'Unknown'
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch transaction location for customer:', customer.email, error);
+    }
+
+    return {
+      ...customer,
+      enhancedLocation: 'Unknown'
+    };
+  }
+
+  static async getEnhancedTransactionData(transaction: Transaction): Promise<Transaction & { enhancedCustomerInfo?: Partial<Customer> }> {
+    // If transaction has billing info, return as is
+    if (transaction.billing_address_country && transaction.billing_address_city) {
+      return transaction;
+    }
+
+    // If transaction location is incomplete, try to get customer's location
+    try {
+      const customersResponse = await this.getCustomers({ 
+        email: transaction.email, 
+        limit: 1 
+      });
+
+      if (customersResponse.success && customersResponse.data && customersResponse.data.length > 0) {
+        const customer = customersResponse.data[0];
+        
+        return {
+          ...transaction,
+          enhancedCustomerInfo: {
+            country: customer.country,
+            city: customer.city,
+            state: customer.state,
+            address_line1: customer.address_line1,
+            address_line2: customer.address_line2,
+            postal_code: customer.postal_code,
+            phone: customer.phone
+          }
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to fetch customer info for transaction:', transaction.email, error);
+    }
+
+    return transaction;
+  }
+
+  // Helper to get the best available location from enhanced transaction data
+  static getBestLocation(transaction: Transaction & { enhancedCustomerInfo?: Partial<Customer> }): { city?: string; country?: string; state?: string } | null {
+    // Priority 1: Enhanced customer location from transaction
+    if (transaction.enhancedCustomerInfo?.country || transaction.enhancedCustomerInfo?.city) {
+      return {
+        city: transaction.enhancedCustomerInfo.city || undefined,
+        state: transaction.enhancedCustomerInfo.state || undefined,
+        country: transaction.enhancedCustomerInfo.country || undefined
+      };
+    }
+
+    // Priority 2: Transaction billing location
+    if (transaction.billing_address_country || transaction.billing_address_city) {
+      return {
+        city: transaction.billing_address_city || undefined,
+        state: transaction.billing_address_state || undefined,
+        country: transaction.billing_address_country || undefined
+      };
+    }
+
+    // Priority 3: Transaction IP location (if it looks like a country code)
+    if (transaction.ip_address && transaction.ip_address !== 'US' && transaction.ip_address.length === 2) {
+      return {
+        country: transaction.ip_address
+      };
+    }
+
+    return null;
   }
 }

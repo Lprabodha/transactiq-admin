@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MoreHorizontal, Plus, Search, DollarSign, MapPin, Phone, ChevronLeft, ChevronRight } from "lucide-react"
+import { MoreHorizontal, Plus, Search, DollarSign, MapPin, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -19,67 +19,9 @@ import { CustomerDetailsDialog } from "@/components/customer-details-dialog"
 import { ClientOnly } from "@/components/client-only"
 import { ApiService, type Customer } from "@/lib/api-service"
 
-// Sample customer data (fallback)
-const sampleCustomers = [
-  {
-    _id: "1",
-    email: "john.doe@example.com",
-    name: "John Doe",
-    phone: "+1234567890",
-    currency: "usd",
-    country: "US",
-    created_at: "2023-06-12T10:30:00Z",
-    delinquent: false,
-    balance: 0,
-  },
-  {
-    _id: "2",
-    email: "jane.smith@example.com",
-    name: "Jane Smith",
-    phone: "+1234567891",
-    currency: "usd",
-    country: "CA",
-    created_at: "2023-06-11T14:45:00Z",
-    delinquent: false,
-    balance: 25.5,
-  },
-  {
-    _id: "3",
-    email: "robert.johnson@example.com",
-    name: "Robert Johnson",
-    phone: "+1234567892",
-    currency: "eur",
-    country: "UK",
-    created_at: "2023-06-10T09:15:00Z",
-    delinquent: true,
-    balance: -150.0,
-  },
-  {
-    _id: "4",
-    email: "emily.davis@example.com",
-    name: "Emily Davis",
-    phone: "+1234567893",
-    currency: "usd",
-    country: "AU",
-    created_at: "2023-06-09T16:20:00Z",
-    delinquent: false,
-    balance: 75.25,
-  },
-  {
-    _id: "5",
-    email: "michael.wilson@example.com",
-    name: "Michael Wilson",
-    phone: "+1234567894",
-    currency: "usd",
-    country: "US",
-    created_at: "2023-06-08T11:05:00Z",
-    delinquent: false,
-    balance: 0,
-  },
-]
-
 export function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [enhancedCustomers, setEnhancedCustomers] = useState<(Customer & { enhancedLocation?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
@@ -104,27 +46,57 @@ export function CustomersTable() {
     async function fetchCustomers() {
       try {
         setLoading(true)
+        setError(null)
+        
+        console.log("Fetching customers with params:", {
+          limit: itemsPerPage,
+          skip: (currentPage - 1) * itemsPerPage,
+          search: searchQuery || undefined,
+        })
+        
         const response = await ApiService.getCustomers({
           limit: itemsPerPage,
           skip: (currentPage - 1) * itemsPerPage,
           search: searchQuery || undefined,
         })
 
+        console.log("Customers API response:", response)
+
         if (response.success && response.data) {
           setCustomers(response.data)
           setTotalCount(response.totalCount || response.data.length)
+          console.log("Loaded customers:", response.data.length)
+          
+          // Enhance customers with location data from transactions
+          console.log("Enhancing customer location data...")
+          const enhanced = await Promise.all(
+            response.data.map(async (customer) => {
+              try {
+                return await ApiService.getEnhancedCustomerData(customer)
+              } catch (error) {
+                console.warn(`Failed to enhance customer ${customer.email}:`, error)
+                return {
+                  ...customer,
+                  enhancedLocation: [customer.city, customer.state, customer.country].filter(Boolean).join(', ') || 'Unknown'
+                }
+              }
+            })
+          )
+          setEnhancedCustomers(enhanced)
         } else {
-          setError(response.error || "Failed to fetch customers")
-          // Fallback to sample data
-          setCustomers(sampleCustomers as Customer[])
-          setTotalCount(sampleCustomers.length)
+          const errorMsg = response.error || "Failed to fetch customers"
+          setError(errorMsg)
+          setCustomers([])
+          setEnhancedCustomers([])
+          setTotalCount(0)
+          console.error("Failed to fetch customers:", errorMsg)
         }
       } catch (err) {
         setError("An error occurred while fetching customers")
         console.error("Customers fetch error:", err)
-        // Fallback to sample data
-        setCustomers(sampleCustomers as Customer[])
-        setTotalCount(sampleCustomers.length)
+        setCustomers([])
+        setEnhancedCustomers([])
+        setTotalCount(0)
       } finally {
         setLoading(false)
       }
@@ -133,7 +105,7 @@ export function CustomersTable() {
     fetchCustomers()
   }, [mounted, currentPage, searchQuery])
 
-  const filteredCustomers = customers
+  const filteredCustomers = enhancedCustomers.length > 0 ? enhancedCustomers : customers
 
   const formatDate = (dateString: string) => {
     return ApiService.formatDate(dateString)
@@ -184,6 +156,36 @@ export function CustomersTable() {
     return loadingFallback
   }
 
+  // Show empty state when no customers
+  if (customers.length === 0 && !loading && !error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search customers..."
+              className="w-full pl-8"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => setIsAddCustomerOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Customer
+          </Button>
+        </div>
+        <div className="rounded-md border">
+          <div className="h-96 flex flex-col items-center justify-center">
+            <p className="text-lg font-medium text-muted-foreground mb-2">No customers found</p>
+            <p className="text-sm text-muted-foreground">No customer data is available from the API</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (error) {
     return (
       <div className="space-y-4">
@@ -207,7 +209,18 @@ export function CustomersTable() {
           <div className="h-96 flex items-center justify-center">
             <div className="text-center">
               <p className="text-red-600 mb-2">Error loading customers</p>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="mr-2"
+              >
+                Retry
+              </Button>
+              <Button onClick={() => setIsAddCustomerOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Customer
+              </Button>
             </div>
           </div>
         </div>
@@ -271,28 +284,57 @@ export function CustomersTable() {
                     <div>
                       <div className="font-medium">{customer.name}</div>
                       <div className="text-sm text-muted-foreground">{customer.email}</div>
+                      {customer.gateway_customer_ids?.stripe && (
+                        <div className="text-xs text-muted-foreground">
+                          Stripe: {customer.gateway_customer_ids.stripe}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="space-y-1">
                       {customer.phone && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Phone className="h-3 w-3" />
                           {customer.phone}
                         </div>
                       )}
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        {customer.email}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{customer.country || "Unknown"}</span>
+                      <div className="text-sm">
+                        {(() => {
+                          const enhancedCustomer = customer as Customer & { enhancedLocation?: string }
+                          return enhancedCustomer.enhancedLocation || 
+                            [customer.city, customer.state, customer.country]
+                              .filter(Boolean)
+                              .join(", ") || "Unknown"
+                        })()}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">{formatCurrency(customer.balance, customer.currency)}</span>
+                      {(() => {
+                        let colorClass = "text-muted-foreground"
+                        if (customer.balance > 0) {
+                          colorClass = "text-green-600"
+                        } else if (customer.balance < 0) {
+                          colorClass = "text-red-600"
+                        }
+                        return (
+                          <span className={`font-medium ${colorClass}`}>
+                            {formatCurrency(customer.balance, customer.currency)}
+                          </span>
+                        )
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(customer)}</TableCell>

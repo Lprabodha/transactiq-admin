@@ -175,15 +175,49 @@ export function CustomerDetailsDialog({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Balance</label>
+                  <label className="text-sm font-medium text-muted-foreground">Account Balance</label>
                   <div className="flex items-center gap-2 text-lg font-semibold">
                     <DollarSign className="h-4 w-4" />
-                    {formatCurrency(customer.balance, customer.currency)}
+                    {(() => {
+                      let colorClass = "text-muted-foreground"
+                      if (customer.balance > 0) {
+                        colorClass = "text-green-600"
+                      } else if (customer.balance < 0) {
+                        colorClass = "text-red-600"
+                      }
+                      return (
+                        <span className={colorClass}>
+                          {formatCurrency(customer.balance, customer.currency)}
+                        </span>
+                      )
+                    })()}
                   </div>
+                  {customer.balance > 0 && (
+                    <p className="text-xs text-green-600 mt-1">Credit balance</p>
+                  )}
+                  {customer.balance < 0 && (
+                    <p className="text-xs text-red-600 mt-1">Outstanding balance</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Currency</label>
-                  <p className="text-sm uppercase">{customer.currency}</p>
+                  <p className="text-sm uppercase font-medium">{customer.currency}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Payment Status</label>
+                  <div className="mt-1">
+                    {customer.delinquent ? (
+                      <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                        <AlertTriangle className="h-3 w-3" />
+                        Delinquent
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" className="flex items-center gap-1 w-fit">
+                        <Shield className="h-3 w-3" />
+                        Good Standing
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Default Payment Method</label>
@@ -194,60 +228,61 @@ export function CustomerDetailsDialog({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Invoice Prefix</label>
-                  <p className="text-sm font-mono">{customer.invoice_prefix}</p>
+                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded w-fit">
+                    {customer.invoice_prefix || 'Not set'}
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Address Information */}
-          {(customer.country || customer.city || customer.state) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Address Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {customer.country && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Country</label>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {customer.country}
-                      </div>
-                    </div>
-                  )}
-                  {customer.city && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">City</label>
-                      <p className="text-sm">{customer.city}</p>
-                    </div>
-                  )}
-                  {customer.state && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">State</label>
-                      <p className="text-sm">{customer.state}</p>
-                    </div>
-                  )}
-                  {customer.postal_code && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Postal Code</label>
-                      <p className="text-sm">{customer.postal_code}</p>
-                    </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Location & Address Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Country</label>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    {customer.country || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">City</label>
+                  <p className="text-sm">{customer.city || "Not specified"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">State/Province</label>
+                  <p className="text-sm">{customer.state || "Not specified"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Postal Code</label>
+                  <p className="text-sm">{customer.postal_code || "Not specified"}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Full Address</label>
+                <div className="text-sm space-y-1">
+                  {customer.address_line1 ? (
+                    <>
+                      <p>{customer.address_line1}</p>
+                      {customer.address_line2 && <p>{customer.address_line2}</p>}
+                      <p>
+                        {[customer.city, customer.state, customer.postal_code, customer.country]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">No address information available</p>
                   )}
                 </div>
-                {(customer.address_line1 || customer.address_line2) && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Address</label>
-                    <div className="text-sm space-y-1">
-                      {customer.address_line1 && <p>{customer.address_line1}</p>}
-                      {customer.address_line2 && <p>{customer.address_line2}</p>}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Account Information */}
           <Card>

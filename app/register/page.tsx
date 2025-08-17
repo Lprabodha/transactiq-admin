@@ -87,7 +87,7 @@ export default function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Create account</CardTitle>
           <CardDescription className="text-gray-600">
-            Get started with Smart Fraud Detection
+            Get started with TransactIQ Detection
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

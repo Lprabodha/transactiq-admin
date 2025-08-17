@@ -149,106 +149,25 @@ export function TransactionsTable() {
         })
 
         if (response.success && response.data) {
-          setTransactions(response.data)
+          // Enhance transaction data with customer location if transaction location is missing
+          const enhancedTransactions = await Promise.all(
+            response.data.map(async (transaction) => {
+              const enhanced = await ApiService.getEnhancedTransactionData(transaction)
+              return enhanced
+            })
+          )
+          setTransactions(enhancedTransactions)
           setTotalCount(response.totalCount || response.data.length)
         } else {
           setError(response.error || "Failed to fetch transactions")
-          // Fallback to sample data
-          setTransactions(
-            sampleTransactions.map((t) => ({
-              _id: t.id,
-              transaction_id: t.id,
-              email: t.customer,
-              amount: t.amount,
-              currency: t.currency,
-              gateway: t.gateway,
-              status: t.status,
-              payment_method: "card",
-              card_brand: "visa",
-              card_country: "US",
-              fingerprint: "sample",
-              funding_type: "credit",
-              three_d_secure: null,
-              cvc_check: "pass",
-              address_line1_check: null,
-              postal_code_check: "pass",
-              risk_level: "normal",
-              risk_score: t.fraudRisk,
-              seller_message: "Payment complete",
-              network_status: "approved_by_network",
-              outcome_type: "authorized",
-              ip_address: "US",
-              billing_name: null,
-              billing_email: t.customer,
-              billing_phone: null,
-              billing_address_country: "US",
-              billing_address_line1: null,
-              billing_address_line2: null,
-              billing_address_postal_code: "12345",
-              billing_address_city: null,
-              billing_address_state: null,
-              refunded: false,
-              amount_refunded: 0,
-              disputed: false,
-              captured: true,
-              paid: true,
-              created_at: t.date,
-              chargeback_confidence: t.chargebackProbability / 100,
-              chargeback_predicted: t.chargebackProbability > 50,
-              updated_at: t.date,
-            })),
-          )
-          setTotalCount(sampleTransactions.length)
+          setTransactions([])
+          setTotalCount(0)
         }
       } catch (err) {
         setError("An error occurred while fetching transactions")
         console.error("Transactions fetch error:", err)
-        // Fallback to sample data
-        setTransactions(
-          sampleTransactions.map((t) => ({
-            _id: t.id,
-            transaction_id: t.id,
-            email: t.customer,
-            amount: t.amount,
-            currency: t.currency,
-            gateway: t.gateway,
-            status: t.status,
-            payment_method: "card",
-            card_brand: "visa",
-            card_country: "US",
-            fingerprint: "sample",
-            funding_type: "credit",
-            three_d_secure: null,
-            cvc_check: "pass",
-            address_line1_check: null,
-            postal_code_check: "pass",
-            risk_level: "normal",
-            risk_score: t.fraudRisk,
-            seller_message: "Payment complete",
-            network_status: "approved_by_network",
-            outcome_type: "authorized",
-            ip_address: "US",
-            billing_name: null,
-            billing_email: t.customer,
-            billing_phone: null,
-            billing_address_country: "US",
-            billing_address_line1: null,
-            billing_address_line2: null,
-            billing_address_postal_code: "12345",
-            billing_address_city: null,
-            billing_address_state: null,
-            refunded: false,
-            amount_refunded: 0,
-            disputed: false,
-            captured: true,
-            paid: true,
-            created_at: t.date,
-            chargeback_confidence: t.chargebackProbability / 100,
-            chargeback_predicted: t.chargebackProbability > 50,
-            updated_at: t.date,
-          })),
-        )
-        setTotalCount(sampleTransactions.length)
+        setTransactions([])
+        setTotalCount(0)
       } finally {
         setLoading(false)
       }
@@ -289,30 +208,23 @@ export function TransactionsTable() {
   }
 
   const getRiskBadgeVariant = (risk: number) => {
-    const level = ApiService.getRiskLevel(risk)
-    switch (level) {
-      case "low":
-        return "success"
-      case "medium":
-        return "warning"
-      case "high":
-        return "destructive"
-      default:
-        return "secondary"
-    }
+    if (risk < 30) return "default"
+    if (risk < 70) return "secondary"
+    return "destructive"
   }
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case "succeeded":
       case "completed":
-        return "success"
+      case "paid":
+        return "default"
       case "pending":
-        return "warning"
+        return "secondary"
       case "failed":
         return "destructive"
       default:
-        return "secondary"
+        return "outline"
     }
   }
 
@@ -372,6 +284,36 @@ export function TransactionsTable() {
         <div className="rounded-md border">
           <div className="h-96 flex items-center justify-center">
             <p className="text-muted-foreground">Loading transactions...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show empty state when no transactions
+  if (transactions.length === 0 && !loading && !error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search transactions..."
+              className="w-full pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" onClick={() => setIsFiltersOpen(true)}>
+            <Filter className="mr-2 h-4 w-4" />
+            Filters
+          </Button>
+        </div>
+        <div className="rounded-md border">
+          <div className="h-96 flex flex-col items-center justify-center">
+            <p className="text-lg font-medium text-muted-foreground mb-2">No transactions found</p>
+            <p className="text-sm text-muted-foreground">No transaction data is available from the API</p>
           </div>
         </div>
       </div>
@@ -481,14 +423,29 @@ export function TransactionsTable() {
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Gateway</TableHead>
+              <TableHead>Location</TableHead>
               <TableHead>Fraud Risk</TableHead>
               <TableHead>Chargeback</TableHead>
+              <TableHead>Recommendations</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.map((transaction) => (
-              <TableRow key={transaction._id}>
+            {filteredTransactions.map((transaction) => {
+              const isHighRisk = transaction.chargeback_predicted || transaction.risk_score > 70
+              const isHighPriority = transaction.recommendations?.priority === "high"
+              let rowClass = ""
+              if (isHighRisk) {
+                rowClass = "bg-destructive/5 border-l-4 border-l-destructive"
+              } else if (isHighPriority) {
+                rowClass = "bg-orange-50 border-l-4 border-l-orange-400"
+              }
+              
+              return (
+              <TableRow 
+                key={transaction._id}
+                className={rowClass}
+              >
                 <TableCell>
                   <Checkbox
                     checked={selectedTransactions.includes(transaction._id)}
@@ -504,12 +461,55 @@ export function TransactionsTable() {
                 </TableCell>
                 <TableCell>{getGatewayBadge(transaction.gateway)}</TableCell>
                 <TableCell>
+                  {(() => {
+                    const enhancedTransaction = transaction as Transaction & { enhancedCustomerInfo?: Partial<any> }
+                    const location = ApiService.getBestLocation(enhancedTransaction)
+                    return location ? (
+                      <div className="text-sm">
+                        {location.city && location.country ? 
+                          `${location.city}, ${location.country}` :
+                          location.country || location.city || 'Unknown'
+                        }
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Unknown</span>
+                    )
+                  })()}
+                </TableCell>
+                <TableCell>
                   <Badge variant={getRiskBadgeVariant(transaction.risk_score)}>{transaction.risk_score}%</Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={getRiskBadgeVariant(transaction.chargeback_confidence * 100)}>
                     {(transaction.chargeback_confidence * 100).toFixed(1)}%
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {transaction.recommendations ? (
+                    <div className="flex flex-col gap-1">
+                      {(() => {
+                        let badgeVariant: "destructive" | "default" | "secondary" = "secondary"
+                        if (transaction.recommendations.priority === "high") {
+                          badgeVariant = "destructive"
+                        } else if (transaction.recommendations.priority === "medium") {
+                          badgeVariant = "default"
+                        }
+                        return (
+                          <Badge 
+                            variant={badgeVariant}
+                            className="text-xs"
+                          >
+                            {transaction.recommendations.priority} Priority
+                          </Badge>
+                        )
+                      })()}
+                      <span className="text-xs text-muted-foreground">
+                        {transaction.recommendations.recommended_actions.length} actions
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No recommendations</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -561,7 +561,8 @@ export function TransactionsTable() {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            })}
           </TableBody>
         </Table>
       </div>

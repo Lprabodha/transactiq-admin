@@ -78,31 +78,11 @@ export function FraudTrend() {
 
           setFraudTrendData(trendData)
         } else {
-          setFraudTrendData([
-            { date: "2023-06-01", fraudRate: 2.3 },
-            { date: "2023-06-02", fraudRate: 2.1 },
-            { date: "2023-06-03", fraudRate: 2.5 },
-            { date: "2023-06-04", fraudRate: 2.8 },
-            { date: "2023-06-05", fraudRate: 2.6 },
-            { date: "2023-06-06", fraudRate: 3.1 },
-            { date: "2023-06-07", fraudRate: 3.5 },
-            { date: "2023-06-08", fraudRate: 3.2 },
-            { date: "2023-06-09", fraudRate: 2.9 },
-            { date: "2023-06-10", fraudRate: 2.7 },
-            { date: "2023-06-11", fraudRate: 2.5 },
-            { date: "2023-06-12", fraudRate: 2.8 },
-            { date: "2023-06-13", fraudRate: 3.0 },
-            { date: "2023-06-14", fraudRate: 3.2 },
-          ])
+          setFraudTrendData([])
         }
       } catch (error) {
         console.error("[v0] Error fetching fraud trend data:", error)
-        setFraudTrendData([
-          { date: "2023-06-01", fraudRate: 2.3 },
-          { date: "2023-06-02", fraudRate: 2.1 },
-          { date: "2023-06-03", fraudRate: 2.5 },
-          { date: "2023-06-04", fraudRate: 2.8 },
-        ])
+        setFraudTrendData([])
       } finally {
         setLoading(false)
       }
@@ -115,6 +95,14 @@ export function FraudTrend() {
     return (
       <div className="h-[300px] flex items-center justify-center">
         <p className="text-muted-foreground">Loading fraud trend data...</p>
+      </div>
+    )
+  }
+
+  if (fraudTrendData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No fraud trend data available</p>
       </div>
     )
   }
@@ -219,17 +207,11 @@ export function RiskByGateway() {
 
           setRiskByGatewayData(chartData)
         } else {
-          setRiskByGatewayData([
-            { gateway: "Stripe", lowRisk: 65, mediumRisk: 25, highRisk: 10 },
-            { gateway: "SolidGate", lowRisk: 55, mediumRisk: 30, highRisk: 15 },
-          ])
+          setRiskByGatewayData([])
         }
       } catch (error) {
         console.error("[v0] Error fetching risk by gateway data:", error)
-        setRiskByGatewayData([
-          { gateway: "Stripe", lowRisk: 65, mediumRisk: 25, highRisk: 10 },
-          { gateway: "SolidGate", lowRisk: 55, mediumRisk: 30, highRisk: 15 },
-        ])
+        setRiskByGatewayData([])
       } finally {
         setLoading(false)
       }
@@ -242,6 +224,14 @@ export function RiskByGateway() {
     return (
       <div className="h-[300px] flex items-center justify-center">
         <p className="text-muted-foreground">Loading gateway risk data...</p>
+      </div>
+    )
+  }
+
+  if (riskByGatewayData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No gateway risk data available</p>
       </div>
     )
   }
@@ -345,19 +335,11 @@ export function ChargebackPrediction() {
 
           setChargebackPredictionData(chartData)
         } else {
-          setChargebackPredictionData([
-            { name: "Credit Card", value: 65 },
-            { name: "Debit Card", value: 25 },
-            { name: "Digital Wallet", value: 10 },
-          ])
+          setChargebackPredictionData([])
         }
       } catch (error) {
         console.error("[v0] Error fetching chargeback prediction data:", error)
-        setChargebackPredictionData([
-          { name: "Credit Card", value: 65 },
-          { name: "Debit Card", value: 25 },
-          { name: "Digital Wallet", value: 10 },
-        ])
+        setChargebackPredictionData([])
       } finally {
         setLoading(false)
       }
@@ -370,6 +352,14 @@ export function ChargebackPrediction() {
     return (
       <div className="h-[300px] flex items-center justify-center">
         <p className="text-muted-foreground">Loading chargeback prediction data...</p>
+      </div>
+    )
+  }
+
+  if (chargebackPredictionData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No chargeback prediction data available</p>
       </div>
     )
   }
