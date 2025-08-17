@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -24,6 +25,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts"
+import { ApiService } from "@/lib/api-service"
 
 // Sample data for risk distribution
 const riskDistributionData = [
@@ -207,55 +209,129 @@ const GATEWAY_COLORS = {
   Combined: "#6b7280",
 }
 
+// Chart colors
+const CHART_COLORS = {
+  primary: "#10b981",
+  secondary: "#3b82f6",
+  success: "#10b981",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  info: "#06b6d4",
+  light: "#6ee7b7",
+  muted: "#6b7280",
+}
+
+const PIE_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#06b6d4"]
+
+// Risk Distribution Chart - Now fetches real data
 export function RiskDistribution() {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchRiskData() {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await ApiService.getTransactions({ limit: 1000 })
+        
+        if (response.success && response.data && response.data.length > 0) {
+          // Group transactions by risk score ranges
+          const riskRanges = [
+            { min: 0, max: 10, label: "0-10%" },
+            { min: 11, max: 20, label: "11-20%" },
+            { min: 21, max: 30, label: "21-30%" },
+            { min: 31, max: 40, label: "31-40%" },
+            { min: 41, max: 50, label: "41-50%" },
+            { min: 51, max: 60, label: "51-60%" },
+            { min: 61, max: 70, label: "61-70%" },
+            { min: 71, max: 80, label: "71-80%" },
+            { min: 81, max: 90, label: "81-90%" },
+            { min: 91, max: 100, label: "91-100%" }
+          ]
+          
+          const riskData = riskRanges.map(range => {
+            const count = response.data.filter(t => {
+              const riskScore = t.risk_score || 0
+              return riskScore >= range.min && riskScore <= range.max
+            }).length
+            
+            return {
+              range: range.label,
+              count
+            }
+          }).filter(item => item.count > 0)
+          
+          setData(riskData)
+        } else {
+          setData([])
+          setError('No transaction data available')
+        }
+      } catch (error) {
+        console.error("[RiskDistribution] Error fetching data:", error)
+        setError('Failed to fetch risk distribution data')
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRiskData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading risk distribution...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-sm">Error loading risk distribution</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">No risk distribution data available</p>
+          <p className="text-xs text-muted-foreground">No transactions found with risk scores</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={riskDistributionData} margin={{ top: 5, right: 30, left: 0, bottom: 25 }}>
-          <defs>
-            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
-            </linearGradient>
-          </defs>
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-          <XAxis
-            dataKey="range"
-            angle={-45}
-            textAnchor="end"
-            height={60}
-            stroke="#6b7280"
-            axisLine={false}
-            tickLine={false}
-          />
+          <XAxis dataKey="range" stroke="#6b7280" axisLine={false} tickLine={false} />
           <YAxis stroke="#6b7280" axisLine={false} tickLine={false} />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 return (
                   <div className="rounded-lg border bg-background p-3 shadow-md">
-                    <div className="grid gap-1">
+                    <p className="font-medium">{payload[0].payload.range}</p>
+                    <div className="mt-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm text-muted-foreground">Risk Range:</span>
-                        <span className="font-medium">{payload[0].payload.range}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <span className="h-3 w-3 rounded-full bg-[#10b981]" />
-                          Transactions:
-                        </span>
+                        <span className="text-sm text-muted-foreground">Count:</span>
                         <span className="font-medium">{payload[0].value}</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm text-muted-foreground">Percentage:</span>
-                        <span className="font-medium">
-                          {(
-                            (payload[0].value / riskDistributionData.reduce((sum, item) => sum + item.count, 0)) *
-                            100
-                          ).toFixed(1)}
-                          %
-                        </span>
-                      </div>
                     </div>
                   </div>
                 )
@@ -263,65 +339,136 @@ export function RiskDistribution() {
               return null
             }}
           />
-          <Bar
-            dataKey="count"
-            fill="url(#colorCount)"
-            radius={[4, 4, 0, 0]}
-            barSize={30}
-            animationDuration={1500}
-            isAnimationActive={true}
-          />
+          <Bar dataKey="count" fill={CHART_COLORS.primary} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
+// Risk by Country Chart - Now fetches real data
 export function RiskByCountry() {
-  const sortedData = [...riskByCountryData].sort((a, b) => b.avgRisk - a.avgRisk)
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchCountryRiskData() {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await ApiService.getTransactions({ limit: 1000 })
+        
+        if (response.success && response.data && response.data.length > 0) {
+          // Group transactions by country and calculate average risk
+          const countryStats = response.data.reduce((acc: any, transaction) => {
+            const country = transaction.billing_address_country || transaction.ip_address || 'Unknown'
+            if (!acc[country]) {
+              acc[country] = { total: 0, sum: 0, transactions: [] }
+            }
+            
+            if (transaction.risk_score !== undefined && transaction.risk_score !== null) {
+              acc[country].total++
+              acc[country].sum += transaction.risk_score
+              acc[country].transactions.push(transaction)
+            }
+            
+            return acc
+          }, {})
+          
+          const countryData = Object.entries(countryStats)
+            .filter(([_, stats]: [string, any]) => stats.total > 0)
+            .map(([country, stats]: [string, any]) => {
+              const avgRisk = Math.round(stats.sum / stats.total)
+              const flag = getCountryFlag(country)
+              
+              return {
+                country: getCountryName(country),
+                avgRisk,
+                code: country,
+                flag,
+                transactionCount: stats.total
+              }
+            })
+            .sort((a, b) => b.avgRisk - a.avgRisk)
+            .slice(0, 10) // Top 10 countries
+          
+          setData(countryData)
+        } else {
+          setData([])
+          setError('No transaction data available')
+        }
+      } catch (error) {
+        console.error("[RiskByCountry] Error fetching data:", error)
+        setError('Failed to fetch country risk data')
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCountryRiskData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading country risk data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-sm">Error loading country risk data</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">No country risk data available</p>
+          <p className="text-xs text-muted-foreground">No transactions found with country and risk data</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-          <defs>
-            <linearGradient id="colorRisk" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.8} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-          <XAxis type="number" stroke="#6b7280" axisLine={false} tickLine={false} />
-          <YAxis
-            type="category"
-            dataKey="country"
-            width={80}
-            stroke="#6b7280"
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(country) => {
-              const countryData = riskByCountryData.find((c) => c.country === country)
-              return countryData ? `${countryData.flag} ${country}` : country
-            }}
-          />
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+          <XAxis dataKey="code" stroke="#6b7280" axisLine={false} tickLine={false} />
+          <YAxis stroke="#6b7280" axisLine={false} tickLine={false} />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
+                const data = payload[0].payload
                 return (
                   <div className="rounded-lg border bg-background p-3 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{data.flag}</span>
+                      <p className="font-medium">{data.country}</p>
+                    </div>
                     <div className="grid gap-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm text-muted-foreground">Country:</span>
-                        <span className="font-medium">
-                          {payload[0].payload.flag} {payload[0].payload.country} ({payload[0].payload.code})
-                        </span>
+                        <span className="text-sm text-muted-foreground">Average Risk:</span>
+                        <span className="font-medium">{data.avgRisk}%</span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <span className="h-3 w-3 rounded-full bg-[#10b981]" />
-                          Risk Score:
-                        </span>
-                        <span className="font-medium">{payload[0].value}%</span>
+                        <span className="text-sm text-muted-foreground">Transactions:</span>
+                        <span className="font-medium">{data.transactionCount}</span>
                       </div>
                     </div>
                   </div>
@@ -330,59 +477,168 @@ export function RiskByCountry() {
               return null
             }}
           />
-          <Bar
-            dataKey="avgRisk"
-            fill="url(#colorRisk)"
-            radius={[0, 4, 4, 0]}
-            barSize={20}
-            animationDuration={1500}
-            isAnimationActive={true}
-          />
+          <Bar dataKey="avgRisk" fill={CHART_COLORS.secondary} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
+// Helper functions for country data
+function getCountryFlag(countryCode: string): string {
+  const flags: { [key: string]: string } = {
+    'US': '🇺🇸', 'GB': '🇬🇧', 'CA': '🇨🇦', 'DE': '🇩🇪', 'FR': '🇫🇷',
+    'AU': '🇦🇺', 'BR': '🇧🇷', 'RU': '🇷🇺', 'IN': '🇮🇳', 'NG': '🇳🇬',
+    'JP': '🇯🇵', 'CN': '🇨🇳', 'KR': '🇰🇷', 'IT': '🇮🇹', 'ES': '🇪🇸'
+  }
+  return flags[countryCode] || '🌍'
+}
+
+function getCountryName(countryCode: string): string {
+  const names: { [key: string]: string } = {
+    'US': 'United States', 'GB': 'United Kingdom', 'CA': 'Canada',
+    'DE': 'Germany', 'FR': 'France', 'AU': 'Australia', 'BR': 'Brazil',
+    'RU': 'Russia', 'IN': 'India', 'NG': 'Nigeria', 'JP': 'Japan',
+    'CN': 'China', 'KR': 'South Korea', 'IT': 'Italy', 'ES': 'Spain'
+  }
+  return names[countryCode] || countryCode
+}
+
+// Chargeback Trend Chart - Now fetches real data
 export function ChargebackTrend() {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchChargebackTrendData() {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await ApiService.getTransactions({ limit: 1000 })
+        
+        if (response.success && response.data && response.data.length > 0) {
+          // Group transactions by month and gateway
+          const monthlyStats = response.data.reduce((acc: any, transaction) => {
+            if (!transaction.created_at) return acc
+            
+            const date = new Date(transaction.created_at)
+            const monthKey = date.toLocaleDateString('en-US', { month: 'short' })
+            const gateway = transaction.gateway || 'Unknown'
+            
+            if (!acc[monthKey]) {
+              acc[monthKey] = { month: monthKey, total: 0, chargebacks: 0 }
+            }
+            
+            acc[monthKey].total++
+            if (transaction.chargeback_predicted) {
+              acc[monthKey].chargebacks++
+            }
+            
+            return acc
+          }, {})
+          
+          // Calculate chargeback rates and format data
+          const trendData = Object.values(monthlyStats).map((monthData: any) => {
+            const chargebackRate = monthData.total > 0 
+              ? (monthData.chargebacks / monthData.total) * 100 
+              : 0
+            
+            return {
+              month: monthData.month,
+              chargebackRate: Math.round(chargebackRate * 100) / 100,
+              totalTransactions: monthData.total,
+              chargebackCount: monthData.chargebacks
+            }
+          }).sort((a, b) => {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            return months.indexOf(a.month) - months.indexOf(b.month)
+          })
+          
+          setData(trendData)
+        } else {
+          setData([])
+          setError('No transaction data available')
+        }
+      } catch (error) {
+        console.error("[ChargebackTrend] Error fetching data:", error)
+        setError('Failed to fetch chargeback trend data')
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchChargebackTrendData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading chargeback trend...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-sm">Error loading chargeback trend</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">No chargeback trend data available</p>
+          <p className="text-xs text-muted-foreground">No transactions found with chargeback data</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chargebackTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorStripe" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
-            </linearGradient>
-            <linearGradient id="colorSolidGate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-            </linearGradient>
-          </defs>
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
           <XAxis dataKey="month" stroke="#6b7280" axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 5]} stroke="#6b7280" axisLine={false} tickLine={false} />
+          <YAxis 
+            stroke="#6b7280" 
+            axisLine={false} 
+            tickLine={false} 
+            tickFormatter={(value) => `${value}%`} 
+          />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
+                const data = payload[0].payload
                 return (
                   <div className="rounded-lg border bg-background p-3 shadow-md">
-                    <p className="font-medium">{payload[0].payload.month}</p>
+                    <p className="font-medium">{data.month}</p>
                     <div className="mt-2 grid gap-1">
-                      {payload.map((entry, index) => (
-                        <div key={`item-${index}`} className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <span
-                              className="h-3 w-3 rounded-full"
-                              style={{
-                                backgroundColor: entry.dataKey === "stripeRate" ? "#10b981" : "#3b82f6",
-                              }}
-                            />
-                            {entry.dataKey === "stripeRate" ? "Stripe" : "SolidGate"}:
-                          </span>
-                          <span className="font-medium">{entry.value}%</span>
-                        </div>
-                      ))}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Chargeback Rate:</span>
+                        <span className="font-medium">{data.chargebackRate}%</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Total Transactions:</span>
+                        <span className="font-medium">{data.totalTransactions}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Chargebacks:</span>
+                        <span className="font-medium">{data.chargebackCount}</span>
+                      </div>
                     </div>
                   </div>
                 )
@@ -390,42 +646,132 @@ export function ChargebackTrend() {
               return null
             }}
           />
-          <Legend
-            formatter={(value) => {
-              return value === "stripeRate" ? "Stripe" : "SolidGate"
-            }}
-          />
-          <Area
+          <Line
             type="monotone"
-            dataKey="stripeRate"
-            stroke="#10b981"
+            dataKey="chargebackRate"
+            stroke={CHART_COLORS.primary}
             strokeWidth={3}
-            fillOpacity={1}
-            fill="url(#colorStripe)"
-            activeDot={{ r: 6, strokeWidth: 0 }}
+            dot={{ r: 4, fill: CHART_COLORS.primary, strokeWidth: 0 }}
+            activeDot={{ r: 6, fill: CHART_COLORS.primary, strokeWidth: 0 }}
           />
-          <Area
-            type="monotone"
-            dataKey="solidgateRate"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            fillOpacity={1}
-            fill="url(#colorSolidGate)"
-            activeDot={{ r: 6, strokeWidth: 0 }}
-          />
-        </AreaChart>
+        </LineChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
+// Chargeback by Payment Method Chart - Now fetches real data
 export function ChargebackByPaymentMethod() {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchPaymentMethodData() {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await ApiService.getTransactions({ limit: 1000 })
+        
+        if (response.success && response.data && response.data.length > 0) {
+          // Group transactions by payment method and calculate chargeback rates
+          const methodStats = response.data.reduce((acc: any, transaction) => {
+            const method = transaction.payment_method === "card"
+              ? transaction.funding_type === "credit"
+                ? "Credit Card"
+                : "Debit Card"
+              : transaction.payment_method === "digital_wallet" 
+                ? "Digital Wallet"
+                : transaction.payment_method || "Other"
+            
+            if (!acc[method]) {
+              acc[method] = { total: 0, chargebacks: 0 }
+            }
+            
+            acc[method].total++
+            if (transaction.chargeback_predicted) {
+              acc[method].chargebacks++
+            }
+            
+            return acc
+          }, {})
+          
+          // Calculate percentages and format data
+          const totalTransactions = response.data.length
+          const methodData = Object.entries(methodStats)
+            .filter(([_, stats]: [string, any]) => stats.total > 0)
+            .map(([method, stats]: [string, any]) => {
+              const percentage = Math.round((stats.total / totalTransactions) * 100)
+              
+              return {
+                name: method,
+                value: percentage,
+                count: stats.total,
+                chargebackCount: stats.chargebacks,
+                chargebackRate: stats.total > 0 
+                  ? Math.round((stats.chargebacks / stats.total) * 100 * 100) / 100
+                  : 0
+              }
+            })
+            .sort((a, b) => b.value - a.value)
+          
+          setData(methodData)
+        } else {
+          setData([])
+          setError('No transaction data available')
+        }
+      } catch (error) {
+        console.error("[ChargebackByPaymentMethod] Error fetching data:", error)
+        setError('Failed to fetch payment method data')
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPaymentMethodData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading payment method data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-sm">Error loading payment method data</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">No payment method data available</p>
+          <p className="text-xs text-muted-foreground">No transactions found with payment method data</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={chargebackByPaymentMethodData}
+            data={data}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -436,26 +782,41 @@ export function ChargebackByPaymentMethod() {
             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             paddingAngle={5}
           >
-            {chargebackByPaymentMethodData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
             formatter={(value) => `${value}%`}
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
+                const data = payload[0].payload
                 return (
                   <div className="rounded-lg border bg-background p-3 shadow-md">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-2">
                       <span
                         className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: COLORS[payload[0].payload.index % COLORS.length] }}
+                        style={{ backgroundColor: PIE_COLORS[payload[0].payload.index % PIE_COLORS.length] }}
                       />
-                      <span className="font-medium">{payload[0].name}</span>
+                      <span className="font-medium">{data.name}</span>
                     </div>
-                    <div className="mt-1">
-                      <span className="text-sm text-muted-foreground">Percentage: </span>
-                      <span className="font-medium">{payload[0].value}%</span>
+                    <div className="grid gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Percentage:</span>
+                        <span className="font-medium">{data.value}%</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Transactions:</span>
+                        <span className="font-medium">{data.count}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Chargeback Rate:</span>
+                        <span className="font-medium">{data.chargebackRate}%</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">Chargebacks:</span>
+                        <span className="font-medium">{data.chargebackCount}</span>
+                      </div>
                     </div>
                   </div>
                 )
@@ -463,7 +824,7 @@ export function ChargebackByPaymentMethod() {
               return null
             }}
           />
-          <Legend formatter={(value, entry) => <span className="text-sm">{value}</span>} />
+          <Legend formatter={(value) => <span className="text-sm">{value}</span>} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -758,8 +1119,8 @@ export function ModelHistory() {
                 <span
                   className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
                   style={{
-                    backgroundColor: `${GATEWAY_COLORS[model.gateway as keyof typeof GATEWAY_COLORS]}20`,
-                    color: GATEWAY_COLORS[model.gateway as keyof typeof GATEWAY_COLORS],
+                    backgroundColor: model.gateway === "Stripe" ? "#10b98120" : "#3b82f620",
+                    color: model.gateway === "Stripe" ? "#10b981" : "#3b82f6",
                   }}
                 >
                   {model.gateway}

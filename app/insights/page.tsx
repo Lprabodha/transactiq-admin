@@ -26,6 +26,7 @@ interface ChargebackStats {
 export default function InsightsPage() {
   const [fraudStats, setFraudStats] = useState<FraudStats | null>(null)
   const [chargebackStats, setChargebackStats] = useState<ChargebackStats | null>(null)
+  const [transactionsResponse, setTransactionsResponse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -44,13 +45,15 @@ export default function InsightsPage() {
         
         console.log('Fetching insights data...')
         
-        const [fraudResponse, chargebackResponse] = await Promise.all([
+        const [fraudResponse, chargebackResponse, transactionsResponse] = await Promise.all([
           ApiService.getFraudResults({ stats: true }),
-          ApiService.getChargebackPredictions({ stats: true })
+          ApiService.getChargebackPredictions({ stats: true }),
+          ApiService.getTransactions({ limit: 1000 })
         ])
         
         console.log('Fraud response:', fraudResponse)
         console.log('Chargeback response:', chargebackResponse)
+        console.log('Transactions response:', transactionsResponse)
         
         if (fraudResponse.success && fraudResponse.data) {
           // Calculate fraud statistics from the data
@@ -75,13 +78,25 @@ export default function InsightsPage() {
           const averageConfidence = chargebackResponse.data.length > 0 
             ? chargebackResponse.data.reduce((sum: number, c: any) => sum + (c.confidence_score || 0), 0) / chargebackResponse.data.length
             : 0
-          const chargebackRate = 0.024 // Placeholder - would need actual chargeback data
+          
+          // Calculate actual chargeback rate from transactions if available
+          let chargebackRate = 0.024 // Default placeholder
+          if (transactionsResponse.success && transactionsResponse.data) {
+            const totalTransactions = transactionsResponse.data.length
+            const chargebackTransactions = transactionsResponse.data.filter((t: any) => t.chargeback_predicted).length
+            chargebackRate = totalTransactions > 0 ? chargebackTransactions / totalTransactions : 0.024
+          }
           
           setChargebackStats({
             totalPredictions,
             averageConfidence,
             chargebackRate
           })
+        }
+        
+        // Store transactions response for use in other calculations
+        if (transactionsResponse.success) {
+          setTransactionsResponse(transactionsResponse)
         }
         
         if (!fraudResponse.success && !chargebackResponse.success) {
@@ -282,12 +297,21 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Prevented Amount</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$12,450</div>
+                <div className="text-2xl font-bold">
+                  {chargebackStats && transactionsResponse?.success && transactionsResponse?.data 
+                    ? ApiService.formatCurrency(
+                        transactionsResponse.data
+                          .filter((t: any) => t.chargeback_predicted)
+                          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
+                      )
+                    : '$0'
+                  }
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
-                  <span>+$1,890 from last month</span>
+                  <span>Potential chargeback amount</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Estimated amount saved by preventing chargebacks.</p>
+                <p className="text-xs text-muted-foreground">Estimated amount that could be charged back.</p>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -295,12 +319,14 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Model Accuracy</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">94.8%</div>
+                <div className="text-2xl font-bold">
+                  {chargebackStats ? `${(chargebackStats.averageConfidence * 100).toFixed(1)}%` : '0%'}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
-                  <span>+1.2% from last month</span>
+                  <span>Average confidence</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Accuracy of the chargeback prediction model.</p>
+                <p className="text-xs text-muted-foreground">Average confidence score of the chargeback prediction model.</p>
               </CardContent>
             </Card>
           </div>
