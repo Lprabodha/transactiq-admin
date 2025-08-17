@@ -17,12 +17,15 @@ import {
 } from "@/components/dashboard-charts";
 import { RecentActivity } from "@/components/recent-activity";
 import { ApiService, DashboardStats } from "@/lib/api-service";
+import { ExportReports, ExportOptions } from "@/components/export-reports"
+import { exportData, filterDataForExport } from "@/utils/export-utils"
 
 export default function DashboardPage() {
     const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false)
 
     useEffect(() => {
         setMounted(true);
@@ -59,6 +62,46 @@ export default function DashboardPage() {
 
         fetchDashboardData();
     }, [mounted]);
+
+    // Handle export
+    const handleExport = async (options: ExportOptions) => {
+        try {
+            setExportLoading(true)
+            
+            // For dashboard exports, we'll export the current dashboard data
+            // This could be enhanced to fetch specific data based on export type
+            const response = await ApiService.getTransactions({ limit: 1000 })
+            
+            if (response.success && response.data) {
+                let dataToExport = response.data
+                
+                if (options.reportType === 'fraud-analysis') {
+                    dataToExport = response.data.filter((t: any) => 
+                        t.fraud_detected || (t.risk_score || 0) > 70
+                    )
+                } else if (options.reportType === 'chargeback-predictions') {
+                    dataToExport = response.data.filter((t: any) => 
+                        t.chargeback_predicted || (t.chargeback_confidence || 0) > 60
+                    )
+                }
+                
+                if (dataToExport.length > 0) {
+                    const filteredData = filterDataForExport(dataToExport, options)
+                    await exportData(filteredData, options)
+                } else {
+                    alert('No data available for export')
+                }
+            } else {
+                alert('No data available for export')
+            }
+            
+        } catch (error) {
+            console.error('Export failed:', error)
+            alert('Export failed. Please try again.')
+        } finally {
+            setExportLoading(false)
+        }
+    }
 
     if (!mounted || loading) {
         return (
@@ -105,10 +148,10 @@ export default function DashboardPage() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-muted-foreground">
-                    Monitor and analyze your fraud detection and chargeback prediction
-                    metrics.
+                    Overview of your payment intelligence and fraud detection metrics.
                 </p>
             </div>
+
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>

@@ -1,6 +1,14 @@
 "use client"
 
+import { useState, useEffect } from "react"
+
 export function ModelPerformanceMetrics() {
+  const [currentDate, setCurrentDate] = useState<string>("")
+
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString())
+  }, [])
+
   const metrics = [
     { name: "Accuracy", value: 0.948, description: "Overall correctness of predictions", change: +0.012 },
     {
@@ -54,7 +62,7 @@ export function ModelPerformanceMetrics() {
           <p className="font-medium mb-1">
             Model Status: <span className="text-green-600">Active</span>
           </p>
-          <p>Last Updated: {new Date().toLocaleDateString()}</p>
+          <p>Last Updated: {currentDate}</p>
           <p>Training Data: 1.2M transactions</p>
         </div>
       </div>

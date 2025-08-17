@@ -172,10 +172,6 @@ export function UsersTable() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button onClick={() => setIsAddUserOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
         </div>
         <div className="rounded-md border">
           <div className="h-96 flex items-center justify-center">
@@ -202,10 +198,6 @@ export function UsersTable() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
         </div>
-        <Button onClick={() => setIsAddUserOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Customer
-        </Button>
       </div>
       <div className="rounded-md border">
         <Table>

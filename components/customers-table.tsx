@@ -207,10 +207,6 @@ export function CustomersTable() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <Button onClick={() => setIsAddCustomerOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
         </div>
         <div className="rounded-md border">
           <div className="h-96 flex flex-col items-center justify-center">
@@ -236,10 +232,6 @@ export function CustomersTable() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button onClick={() => setIsAddCustomerOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
         </div>
         <div className="rounded-md border">
           <div className="h-96 flex items-center justify-center">
@@ -252,10 +244,6 @@ export function CustomersTable() {
                 className="mr-2"
               >
                 Retry
-              </Button>
-              <Button onClick={() => setIsAddCustomerOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Customer
               </Button>
             </div>
           </div>
@@ -294,10 +282,6 @@ export function CustomersTable() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <Button onClick={() => setIsAddCustomerOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
         </div>
 
         <div className="rounded-md border">

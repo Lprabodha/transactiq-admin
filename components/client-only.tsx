@@ -15,8 +15,8 @@ export function ClientOnly({ children, fallback }: ClientOnlyProps) {
   }, [])
 
   if (!mounted) {
-    return fallback ? <>{fallback}</> : null
+    return fallback ? <div suppressHydrationWarning>{fallback}</div> : null
   }
 
-  return <>{children}</>
+  return <div suppressHydrationWarning>{children}</div>
 }

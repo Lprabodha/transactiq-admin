@@ -9,6 +9,8 @@ import { ChargebackPredictionTable } from "@/components/chargeback-prediction-ta
 import { ModelPerformanceMetrics } from "@/components/model-performance-metrics"
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { ApiService } from "@/lib/api-service"
+import { ExportReports, ExportOptions } from "@/components/export-reports"
+import { exportData, filterDataForExport } from "@/utils/export-utils"
 
 interface FraudStats {
   totalChecks: number
@@ -30,6 +32,7 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -114,6 +117,50 @@ export default function InsightsPage() {
     fetchInsightsData()
   }, [mounted])
 
+  // Handle export
+  const handleExport = async (options: ExportOptions) => {
+    try {
+      setExportLoading(true)
+      
+      let dataToExport: any[] = []
+      
+      if (options.reportType === 'fraud-analysis') {
+        // Export fraud-related data
+        if (transactionsResponse?.success && transactionsResponse?.data) {
+          dataToExport = transactionsResponse.data.filter((t: any) => 
+            t.fraud_detected || (t.risk_score || 0) > 70
+          )
+        }
+      } else if (options.reportType === 'chargeback-predictions') {
+        // Export chargeback-related data
+        if (transactionsResponse?.success && transactionsResponse?.data) {
+          dataToExport = transactionsResponse.data.filter((t: any) => 
+            t.chargeback_predicted || (t.chargeback_confidence || 0) > 60
+          )
+        }
+      } else {
+        // Export all transaction data
+        if (transactionsResponse?.success && transactionsResponse?.data) {
+          dataToExport = transactionsResponse.data
+        }
+      }
+      
+      if (dataToExport.length > 0) {
+        // Apply export filters
+        const filteredData = filterDataForExport(dataToExport, options)
+        await exportData(filteredData, options)
+      } else {
+        alert('No data available for export')
+      }
+      
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('Export failed. Please try again.')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   if (!mounted || loading) {
     return (
       <div className="flex flex-col gap-6">
@@ -155,6 +202,10 @@ export default function InsightsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Fraud & Chargeback Insights</h1>
         <p className="text-muted-foreground">Detailed analysis of fraud predictions and chargeback probabilities.</p>
       </div>
+
+      {/* Export Reports Section */}
+      <ExportReports onExport={handleExport} isLoading={exportLoading} />
+
       <Tabs defaultValue="fraud" className="space-y-4">
         <TabsList>
           <TabsTrigger value="fraud">Fraud Analysis</TabsTrigger>
