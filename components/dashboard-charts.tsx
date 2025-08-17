@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -15,37 +16,24 @@ import {
   Area,
   AreaChart,
 } from "recharts"
+import { ApiService } from "@/lib/api-service"
 
-// Sample data for the fraud trend chart
-const fraudTrendData = [
-  { date: "2023-06-01", fraudRate: 2.3 },
-  { date: "2023-06-02", fraudRate: 2.1 },
-  { date: "2023-06-03", fraudRate: 2.5 },
-  { date: "2023-06-04", fraudRate: 2.8 },
-  { date: "2023-06-05", fraudRate: 2.6 },
-  { date: "2023-06-06", fraudRate: 3.1 },
-  { date: "2023-06-07", fraudRate: 3.5 },
-  { date: "2023-06-08", fraudRate: 3.2 },
-  { date: "2023-06-09", fraudRate: 2.9 },
-  { date: "2023-06-10", fraudRate: 2.7 },
-  { date: "2023-06-11", fraudRate: 2.5 },
-  { date: "2023-06-12", fraudRate: 2.8 },
-  { date: "2023-06-13", fraudRate: 3.0 },
-  { date: "2023-06-14", fraudRate: 3.2 },
-]
+interface FraudTrendData {
+  date: string
+  fraudRate: number
+}
 
-// Sample data for the risk by gateway chart - only Stripe and SolidGate
-const riskByGatewayData = [
-  { gateway: "Stripe", lowRisk: 65, mediumRisk: 25, highRisk: 10 },
-  { gateway: "SolidGate", lowRisk: 55, mediumRisk: 30, highRisk: 15 },
-]
+interface RiskByGatewayData {
+  gateway: string
+  lowRisk: number
+  mediumRisk: number
+  highRisk: number
+}
 
-// Sample data for the chargeback prediction chart - only relevant payment methods
-const chargebackPredictionData = [
-  { name: "Credit Card", value: 65 },
-  { name: "Debit Card", value: 25 },
-  { name: "Digital Wallet", value: 10 },
-]
+interface ChargebackPredictionData {
+  name: string
+  value: number
+}
 
 const CHART_COLORS = {
   primary: "#10b981",
@@ -61,6 +49,64 @@ const CHART_COLORS = {
 const PIE_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#06b6d4"]
 
 export function FraudTrend() {
+  const [fraudTrendData, setFraudTrendData] = useState<FraudTrendData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchFraudTrendData() {
+      try {
+        const response = await ApiService.getTransactions({ limit: 100, stats: true })
+
+        if (response.success && response.data) {
+          const last30Days = Array.from({ length: 14 }, (_, i) => {
+            const date = new Date()
+            date.setDate(date.getDate() - (13 - i))
+            return date.toISOString().split("T")[0]
+          })
+
+          const trendData = last30Days.map((date) => {
+            const dayTransactions = response.data?.filter((t) => t.created_at.startsWith(date)) || []
+
+            const fraudCount = dayTransactions.filter((t) => t.risk_score > 70).length
+            const fraudRate = dayTransactions.length > 0 ? (fraudCount / dayTransactions.length) * 100 : 0
+
+            return {
+              date,
+              fraudRate: Number(fraudRate.toFixed(1)),
+            }
+          })
+
+          setFraudTrendData(trendData)
+        } else {
+          setFraudTrendData([])
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching fraud trend data:", error)
+        setFraudTrendData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFraudTrendData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">Loading fraud trend data...</p>
+      </div>
+    )
+  }
+
+  if (fraudTrendData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No fraud trend data available</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -125,6 +171,71 @@ export function FraudTrend() {
 }
 
 export function RiskByGateway() {
+  const [riskByGatewayData, setRiskByGatewayData] = useState<RiskByGatewayData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchRiskByGatewayData() {
+      try {
+        const response = await ApiService.getTransactions({ limit: 1000 })
+
+        if (response.success && response.data) {
+          const gatewayStats = response.data.reduce((acc: any, transaction) => {
+            const gateway = transaction.gateway
+            if (!acc[gateway]) {
+              acc[gateway] = { lowRisk: 0, mediumRisk: 0, highRisk: 0, total: 0 }
+            }
+
+            acc[gateway].total++
+            if (transaction.risk_score < 30) {
+              acc[gateway].lowRisk++
+            } else if (transaction.risk_score < 70) {
+              acc[gateway].mediumRisk++
+            } else {
+              acc[gateway].highRisk++
+            }
+
+            return acc
+          }, {})
+
+          const chartData = Object.entries(gatewayStats).map(([gateway, stats]: [string, any]) => ({
+            gateway,
+            lowRisk: Math.round((stats.lowRisk / stats.total) * 100),
+            mediumRisk: Math.round((stats.mediumRisk / stats.total) * 100),
+            highRisk: Math.round((stats.highRisk / stats.total) * 100),
+          }))
+
+          setRiskByGatewayData(chartData)
+        } else {
+          setRiskByGatewayData([])
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching risk by gateway data:", error)
+        setRiskByGatewayData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRiskByGatewayData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">Loading gateway risk data...</p>
+      </div>
+    )
+  }
+
+  if (riskByGatewayData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No gateway risk data available</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -192,6 +303,67 @@ export function RiskByGateway() {
 }
 
 export function ChargebackPrediction() {
+  const [chargebackPredictionData, setChargebackPredictionData] = useState<ChargebackPredictionData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchChargebackPredictionData() {
+      try {
+        const response = await ApiService.getTransactions({ limit: 1000 })
+
+        if (response.success && response.data) {
+          const paymentMethodStats = response.data.reduce((acc: any, transaction) => {
+            const method =
+              transaction.payment_method === "card"
+                ? transaction.funding_type === "credit"
+                  ? "Credit Card"
+                  : "Debit Card"
+                : "Digital Wallet"
+
+            if (!acc[method]) {
+              acc[method] = 0
+            }
+            acc[method]++
+            return acc
+          }, {})
+
+          const total = Object.values(paymentMethodStats).reduce((sum: number, count: any) => sum + count, 0)
+          const chartData = Object.entries(paymentMethodStats).map(([name, count]: [string, any]) => ({
+            name,
+            value: Math.round((count / total) * 100),
+          }))
+
+          setChargebackPredictionData(chartData)
+        } else {
+          setChargebackPredictionData([])
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching chargeback prediction data:", error)
+        setChargebackPredictionData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchChargebackPredictionData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">Loading chargeback prediction data...</p>
+      </div>
+    )
+  }
+
+  if (chargebackPredictionData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <p className="text-muted-foreground">No chargeback prediction data available</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">

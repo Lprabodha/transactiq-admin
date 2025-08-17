@@ -79,7 +79,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription className="text-gray-600">
-            Sign in to your Smart Fraud Detection account
+            Sign in to your TransactIQ Detection account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

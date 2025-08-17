@@ -37,10 +37,22 @@ export function RefundTransactionDialog({
   const [fullRefund, setFullRefund] = useState(true)
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(amount)
+    // Validate currency code and provide fallback
+    const validCurrency = currency && currency.length === 3 ? currency.toUpperCase() : "USD"
+    
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: validCurrency,
+      }).format(amount)
+    } catch (error) {
+      // Log the error and fallback to USD if currency is still invalid
+      console.warn("Invalid currency code:", validCurrency, error)
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(amount)
+    }
   }
 
   const handleFullRefundChange = (checked: boolean) => {

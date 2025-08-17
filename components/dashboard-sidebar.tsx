@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { AlertCircle, ChevronLeft, CreditCard, Home, Settings, Users } from "lucide-react"
+import { AlertCircle, ChevronLeft, CreditCard, Home, Settings, Users, UserCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -21,9 +21,9 @@ export function DashboardSidebar({ open, setOpen }: DashboardSidebarProps) {
       icon: Home,
     },
     {
-      name: "Users",
+      name: "Customers",
       href: "/users",
-      icon: Users,
+      icon: UserCheck,
     },
     {
       name: "Transactions",
@@ -52,9 +52,9 @@ export function DashboardSidebar({ open, setOpen }: DashboardSidebarProps) {
       <div className="flex h-16 items-center justify-between border-b px-4">
         <Link href="/" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white font-bold">SF</span>
+            <span className="text-white font-bold">TIQ</span>
           </div>
-          <span className="text-lg font-semibold">Smart Fraud</span>
+          <span className="text-lg font-semibold">TransactIQ</span>
         </Link>
         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(false)}>
           <ChevronLeft className="h-5 w-5" />

@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RiskDistribution, RiskByCountry, ChargebackTrend, ChargebackByPaymentMethod, FeatureImportance, ConfusionMatrix, ROCCurve, ModelPerformanceRadar, ModelHistory } from "@/components/fraud-insights-charts"
@@ -5,8 +8,44 @@ import { FraudRiskTable } from "@/components/fraud-risk-table"
 import { ChargebackPredictionTable } from "@/components/chargeback-prediction-table"
 import { ModelPerformanceMetrics } from "@/components/model-performance-metrics"
 import { ArrowUp, ArrowDown } from "lucide-react"
+import { ApiService } from "@/lib/api-service"
 
 export default function InsightsPage() {
+  const [fraudStats, setFraudStats] = useState<any>(null)
+  const [chargebackStats, setChargebackStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchInsightsData() {
+      try {
+        setLoading(true);
+        const [fraudResponse, chargebackResponse] = await Promise.all([
+          ApiService.getFraudResults({ stats: true }),
+          ApiService.getChargebackPredictions({ stats: true })
+        ]);
+        
+        if (fraudResponse.success && fraudResponse.data) {
+          setFraudStats(fraudResponse.data);
+        }
+        
+        if (chargebackResponse.success && chargebackResponse.data) {
+          setChargebackStats(chargebackResponse.data);
+        }
+        
+        if (!fraudResponse.success && !chargebackResponse.success) {
+          setError('Failed to fetch insights data');
+        }
+      } catch (err) {
+        setError('An error occurred while fetching insights data');
+        console.error('Insights fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchInsightsData();
+  }, []);
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -27,10 +66,12 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">High Risk Transactions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">42</div>
+                <div className="text-2xl font-bold">
+                  {loading ? '...' : (fraudStats?.fraudDetected || 0)}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
-                  <span>+12% from last week</span>
+                  <span>High risk transactions</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Transactions flagged with a high probability of fraud.</p>
               </CardContent>
@@ -40,10 +81,12 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Average Risk Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">28.4%</div>
+                <div className="text-2xl font-bold">
+                  {loading ? '...' : `${((fraudStats?.averageConfidence || 0) * 100).toFixed(1)}%`}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowDown className="h-4 w-4 text-red-500" />
-                  <span>-3.2% from last week</span>
+                  <span>Average confidence</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Average fraud risk score across all transactions.</p>
               </CardContent>
@@ -53,12 +96,14 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Blocked Attempts</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">18</div>
+                <div className="text-2xl font-bold">
+                  {loading ? '...' : (fraudStats?.totalChecks || 0)}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
-                  <span>+5 from last week</span>
+                  <span>Total checks</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Number of transactions blocked due to high risk.</p>
+                <p className="text-xs text-muted-foreground">Number of transactions checked for fraud.</p>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -66,13 +111,15 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">False Positives</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3.2%</div>
+                <div className="text-2xl font-bold">
+                  {loading ? '...' : `${((fraudStats?.fraudRate || 0) * 100).toFixed(1)}%`}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowDown className="h-4 w-4 text-red-500" />
-                  <span>-0.5% from last week</span>
+                  <span>Fraud rate</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Percentage of legitimate transactions incorrectly flagged as fraud.
+                  Percentage of transactions flagged as fraud.
                 </p>
               </CardContent>
             </Card>
@@ -117,10 +164,12 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Predicted Chargebacks</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">89</div>
+                <div className="text-2xl font-bold">
+                  {loading ? '...' : (chargebackStats?.totalPredictions || 0)}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
-                  <span>+7 from last month</span>
+                  <span>Predicted chargebacks</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Number of chargebacks predicted by the model.</p>
               </CardContent>

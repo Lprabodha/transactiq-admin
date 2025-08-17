@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Smart Fraud Detection Dashboard",
+  title: "TransactIQ Detection Dashboard",
   description: "Admin dashboard for fraud detection and chargeback prediction",
   generator: "v0.dev",
 };
@@ -19,8 +19,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <DashboardLayout>{children}</DashboardLayout>
+      <body className={inter.className} suppressHydrationWarning>
+        <div suppressHydrationWarning>
+          <DashboardLayout>{children}</DashboardLayout>
+        </div>
       </body>
     </html>
   );
