@@ -1,22 +1,65 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Customer, ApiService } from "@/lib/api-service"
-import { MapPin, Phone, Mail, DollarSign, Calendar, CreditCard, Shield } from "lucide-react"
+import { MapPin, Phone, Mail, DollarSign, Calendar, CreditCard, Shield, AlertTriangle } from "lucide-react"
 
 interface CustomerDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  customer: Customer | null
+  customer?: Customer | null
+  customerId?: string | null
 }
 
-export function CustomerDetailsDialog({ open, onOpenChange, customer }: CustomerDetailsDialogProps) {
-  if (!customer) return null
+export function CustomerDetailsDialog({ 
+  open, 
+  onOpenChange, 
+  customer: initialCustomer, 
+  customerId 
+}: CustomerDetailsDialogProps) {
+  const [customer, setCustomer] = useState<Customer | null>(initialCustomer || null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load customer data if not provided
+  useEffect(() => {
+    if (open && customerId && !initialCustomer) {
+      loadCustomerData()
+    } else if (initialCustomer) {
+      setCustomer(initialCustomer)
+    }
+  }, [open, customerId, initialCustomer])
+
+  const loadCustomerData = async () => {
+    if (!customerId) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await ApiService.getCustomers({ 
+        search: customerId,
+        limit: 1 
+      })
+
+      if (response.success && response.data && response.data.length > 0) {
+        setCustomer(response.data[0])
+      } else {
+        setError('Customer not found')
+      }
+    } catch (err) {
+      setError('Failed to load customer data')
+      console.error('Error loading customer:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return ApiService.formatDate(dateString)
@@ -27,6 +70,8 @@ export function CustomerDetailsDialog({ open, onOpenChange, customer }: Customer
   }
 
   const getStatusBadge = () => {
+    if (!customer) return null
+    
     if (customer.delinquent) {
       return <Badge variant="destructive">Delinquent</Badge>
     }
@@ -35,6 +80,43 @@ export function CustomerDetailsDialog({ open, onOpenChange, customer }: Customer
     }
     return <Badge variant="default">Active</Badge>
   }
+
+  if (loading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </DialogHeader>
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  if (error) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Error
+            </DialogTitle>
+            <DialogDescription>{error}</DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  if (!customer) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

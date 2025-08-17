@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     const dashboardData = {
       success: true,
-      stats: {
+      data: {
         transactions: {
           ...transactionStats,
           successRate: Math.round(successRate * 100) / 100,

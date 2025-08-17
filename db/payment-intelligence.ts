@@ -406,6 +406,34 @@ export class PaymentIntelligenceDB {
     }
   }
 
+  // Insert methods for sample data generation
+  static async insertManyTransactions(transactions: any[]): Promise<any> {
+    try {
+      return await transactionsCollection.insertMany(transactions);
+    } catch (error) {
+      console.error("Error inserting transactions:", error);
+      throw error;
+    }
+  }
+
+  static async insertManyCustomers(customers: any[]): Promise<any> {
+    try {
+      return await customersCollection.insertMany(customers);
+    } catch (error) {
+      console.error("Error inserting customers:", error);
+      throw error;
+    }
+  }
+
+  static async insertManyFraudResults(fraudResults: any[]): Promise<any> {
+    try {
+      return await fraudResultsCollection.insertMany(fraudResults);
+    } catch (error) {
+      console.error("Error inserting fraud results:", error);
+      throw error;
+    }
+  }
+
   // Analytics and aggregation functions
   static async getTransactionStats() {
     try {
@@ -534,10 +562,31 @@ export class PaymentIntelligenceDB {
 // Initialize payment_intelligence database connection
 export async function connectPaymentIntelligenceDB() {
   try {
+    // Check if already connected by testing the database
+    try {
+      await paymentIntelligenceDB.admin().ping();
+      console.log("Already connected to MongoDB - payment_intelligence database");
+      return;
+    } catch (pingError) {
+      // Not connected, proceed to connect
+      console.log("Database not connected, establishing connection...", pingError instanceof Error ? pingError.message : 'Unknown ping error');
+    }
+    
     await paymentIntelligenceClient.connect();
     console.log("Connected to MongoDB - payment_intelligence database");
+    
+    // Test the connection by doing a simple operation
+    await paymentIntelligenceDB.admin().ping();
+    console.log("MongoDB connection test successful");
+    
   } catch (error) {
     console.error("Failed to connect to payment_intelligence MongoDB:", error);
+    // Try to close any partial connections
+    try {
+      await paymentIntelligenceClient.close();
+    } catch (closeError) {
+      console.error("Error closing connection after failed connect:", closeError);
+    }
     throw error;
   }
 }

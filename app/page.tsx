@@ -33,16 +33,24 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       try {
         setLoading(true);
+        setError(null);
+        console.log('Fetching dashboard data...');
+        
         const response = await ApiService.getDashboardStats(true);
+        console.log('Dashboard API response:', response);
         
         if (response.success && response.data) {
           setDashboardStats(response.data);
+          console.log('Dashboard stats set successfully:', response.data);
         } else {
-          setError(response.error || 'Failed to fetch dashboard data');
+          const errorMessage = response.error || 'Failed to fetch dashboard data';
+          console.error('Dashboard API error:', errorMessage, response);
+          setError(errorMessage);
         }
       } catch (err) {
-        setError('An error occurred while fetching dashboard data');
+        const errorMessage = 'An error occurred while fetching dashboard data';
         console.error('Dashboard fetch error:', err);
+        setError(`${errorMessage}: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -62,7 +70,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}>
+            <Card key={`loading-card-${i}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="h-4 w-24 bg-muted animate-pulse rounded" />
                 <div className="h-4 w-4 bg-muted animate-pulse rounded" />
@@ -83,7 +91,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-red-600">
+          <p className="text-red-600">
             Error: {error}
           </p>
         </div>
