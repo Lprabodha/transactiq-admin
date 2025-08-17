@@ -10,42 +10,130 @@ import { ModelPerformanceMetrics } from "@/components/model-performance-metrics"
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { ApiService } from "@/lib/api-service"
 
+interface FraudStats {
+  totalChecks: number
+  fraudDetected: number
+  averageConfidence: number
+  fraudRate: number
+}
+
+interface ChargebackStats {
+  totalPredictions: number
+  averageConfidence: number
+  chargebackRate: number
+}
+
 export default function InsightsPage() {
-  const [fraudStats, setFraudStats] = useState<any>(null)
-  const [chargebackStats, setChargebackStats] = useState<any>(null)
+  const [fraudStats, setFraudStats] = useState<FraudStats | null>(null)
+  const [chargebackStats, setChargebackStats] = useState<ChargebackStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     async function fetchInsightsData() {
       try {
-        setLoading(true);
+        setLoading(true)
+        setError(null)
+        
+        console.log('Fetching insights data...')
+        
         const [fraudResponse, chargebackResponse] = await Promise.all([
           ApiService.getFraudResults({ stats: true }),
           ApiService.getChargebackPredictions({ stats: true })
-        ]);
+        ])
+        
+        console.log('Fraud response:', fraudResponse)
+        console.log('Chargeback response:', chargebackResponse)
         
         if (fraudResponse.success && fraudResponse.data) {
-          setFraudStats(fraudResponse.data);
+          // Calculate fraud statistics from the data
+          const totalChecks = fraudResponse.data.length
+          const fraudDetected = fraudResponse.data.filter((f: any) => f.fraud_detected).length
+          const averageConfidence = fraudResponse.data.length > 0 
+            ? fraudResponse.data.reduce((sum: number, f: any) => sum + (f.confidence || 0), 0) / fraudResponse.data.length
+            : 0
+          const fraudRate = totalChecks > 0 ? fraudDetected / totalChecks : 0
+          
+          setFraudStats({
+            totalChecks,
+            fraudDetected,
+            averageConfidence,
+            fraudRate
+          })
         }
         
         if (chargebackResponse.success && chargebackResponse.data) {
-          setChargebackStats(chargebackResponse.data);
+          // Calculate chargeback statistics from the data
+          const totalPredictions = chargebackResponse.data.length
+          const averageConfidence = chargebackResponse.data.length > 0 
+            ? chargebackResponse.data.reduce((sum: number, c: any) => sum + (c.confidence_score || 0), 0) / chargebackResponse.data.length
+            : 0
+          const chargebackRate = 0.024 // Placeholder - would need actual chargeback data
+          
+          setChargebackStats({
+            totalPredictions,
+            averageConfidence,
+            chargebackRate
+          })
         }
         
         if (!fraudResponse.success && !chargebackResponse.success) {
-          setError('Failed to fetch insights data');
+          setError('Failed to fetch insights data')
         }
       } catch (err) {
-        setError('An error occurred while fetching insights data');
-        console.error('Insights fetch error:', err);
+        const errorMessage = 'An error occurred while fetching insights data'
+        console.error('Insights fetch error:', err)
+        setError(`${errorMessage}: ${err instanceof Error ? err.message : 'Unknown error'}`)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchInsightsData();
-  }, []);
+    fetchInsightsData()
+  }, [mounted])
+
+  if (!mounted || loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Fraud & Chargeback Insights</h1>
+          <p className="text-muted-foreground">Loading insights data...</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={`loading-card-${i}`} className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Fraud & Chargeback Insights</h1>
+          <p className="text-red-600">Error: {error}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -67,7 +155,7 @@ export default function InsightsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : (fraudStats?.fraudDetected || 0)}
+                  {fraudStats?.fraudDetected.toLocaleString() || '0'}
                 </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
@@ -82,7 +170,7 @@ export default function InsightsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : `${((fraudStats?.averageConfidence || 0) * 100).toFixed(1)}%`}
+                  {fraudStats ? `${(fraudStats.averageConfidence * 100).toFixed(1)}%` : '0%'}
                 </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowDown className="h-4 w-4 text-red-500" />
@@ -93,11 +181,11 @@ export default function InsightsPage() {
             </Card>
             <Card className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Blocked Attempts</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Checks</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : (fraudStats?.totalChecks || 0)}
+                  {fraudStats?.totalChecks.toLocaleString() || '0'}
                 </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
@@ -108,11 +196,11 @@ export default function InsightsPage() {
             </Card>
             <Card className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">False Positives</CardTitle>
+                <CardTitle className="text-sm font-medium">Fraud Rate</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : `${((fraudStats?.fraudRate || 0) * 100).toFixed(1)}%`}
+                  {fraudStats ? `${(fraudStats.fraudRate * 100).toFixed(1)}%` : '0%'}
                 </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowDown className="h-4 w-4 text-red-500" />
@@ -165,7 +253,7 @@ export default function InsightsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : (chargebackStats?.totalPredictions || 0)}
+                  {chargebackStats?.totalPredictions.toLocaleString() || '0'}
                 </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowUp className="h-4 w-4 text-green-500" />
@@ -179,7 +267,9 @@ export default function InsightsPage() {
                 <CardTitle className="text-sm font-medium">Chargeback Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2.4%</div>
+                <div className="text-2xl font-bold">
+                  {chargebackStats ? `${(chargebackStats.chargebackRate * 100).toFixed(1)}%` : '2.4%'}
+                </div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <ArrowDown className="h-4 w-4 text-red-500" />
                   <span>-0.3% from last month</span>

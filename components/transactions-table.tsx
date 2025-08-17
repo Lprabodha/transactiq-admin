@@ -214,6 +214,8 @@ export function TransactionsTable() {
   }
 
   const getStatusBadgeVariant = (status: string) => {
+    if (!status) return "outline"
+    
     switch (status.toLowerCase()) {
       case "succeeded":
       case "completed":

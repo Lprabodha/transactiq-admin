@@ -80,9 +80,15 @@ export function CustomersTable() {
                 return await ApiService.getEnhancedCustomerData(customer)
               } catch (error) {
                 console.warn(`Failed to enhance customer ${customer.email}:`, error)
+                const locationParts = [
+                  customer.city,
+                  customer.state,
+                  customer.country
+                ].filter((part): part is string => part !== null && part !== undefined && part.trim() !== '')
+                
                 return {
                   ...customer,
-                  enhancedLocation: [customer.city, customer.state, customer.country].filter(Boolean).join(', ') || 'Unknown'
+                  enhancedLocation: locationParts.length > 0 ? locationParts.join(', ') : 'Unknown'
                 }
               }
             })
@@ -124,7 +130,7 @@ export function CustomersTable() {
     if (customer.delinquent) {
       return <Badge variant="destructive">Delinquent</Badge>
     }
-    if (customer.balance > 0) {
+    if ((customer.balance || 0) > 0) {
       return <Badge variant="secondary">Credit</Badge>
     }
     return <Badge variant="default">Active</Badge>
@@ -148,6 +154,21 @@ export function CustomersTable() {
   const handleSearch = (query: string) => {
     setSearchQuery(query)
     setCurrentPage(1) // Reset to first page when searching
+  }
+
+  // Helper function to safely get customer location
+  const getCustomerLocation = (customer: Customer & { enhancedLocation?: string }) => {
+    if (customer.enhancedLocation) {
+      return customer.enhancedLocation
+    }
+    
+    const locationParts = [
+      customer.city,
+      customer.state, 
+      customer.country
+    ].filter((part): part is string => part !== null && part !== undefined && part.trim() !== '')
+    
+    return locationParts.length > 0 ? locationParts.join(", ") : "Unknown"
   }
 
   const loadingFallback = (
@@ -297,8 +318,8 @@ export function CustomersTable() {
                 <TableRow key={customer._id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-muted-foreground">{customer.email}</div>
+                      <div className="font-medium">{customer.name || 'Unknown Name'}</div>
+                      <div className="text-sm text-muted-foreground">{customer.email || 'No Email'}</div>
                       {customer.gateway_customer_ids?.stripe && (
                         <div className="text-xs text-muted-foreground">
                           Stripe: {customer.gateway_customer_ids.stripe}
@@ -316,7 +337,7 @@ export function CustomersTable() {
                       )}
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Mail className="h-3 w-3" />
-                        {customer.email}
+                        {customer.email || 'No Email'}
                       </div>
                     </div>
                   </TableCell>
@@ -324,13 +345,7 @@ export function CustomersTable() {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-3 w-3 text-muted-foreground" />
                       <div className="text-sm">
-                        {(() => {
-                          const enhancedCustomer = customer as Customer & { enhancedLocation?: string }
-                          return enhancedCustomer.enhancedLocation || 
-                            [customer.city, customer.state, customer.country]
-                              .filter(Boolean)
-                              .join(", ") || "Unknown"
-                        })()}
+                        {getCustomerLocation(customer)}
                       </div>
                     </div>
                   </TableCell>
@@ -339,14 +354,15 @@ export function CustomersTable() {
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
                       {(() => {
                         let colorClass = "text-muted-foreground"
-                        if (customer.balance > 0) {
+                        const balance = customer.balance || 0
+                        if (balance > 0) {
                           colorClass = "text-green-600"
-                        } else if (customer.balance < 0) {
+                        } else if (balance < 0) {
                           colorClass = "text-red-600"
                         }
                         return (
                           <span className={`font-medium ${colorClass}`}>
-                            {formatCurrency(customer.balance, customer.currency)}
+                            {formatCurrency(balance, customer.currency || 'USD')}
                           </span>
                         )
                       })()}
@@ -354,7 +370,9 @@ export function CustomersTable() {
                   </TableCell>
                   <TableCell>{getStatusBadge(customer)}</TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">{formatDate(customer.created_at)}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {customer.created_at ? formatDate(customer.created_at) : 'Unknown Date'}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

@@ -434,6 +434,51 @@ export class PaymentIntelligenceDB {
     }
   }
 
+  static async insertManySubscriptions(subscriptions: any[]): Promise<any> {
+    try {
+      return await subscriptionsCollection.insertMany(subscriptions);
+    } catch (error) {
+      console.error("Error inserting subscriptions:", error);
+      throw error;
+    }
+  }
+
+  static async insertManyChargebackPredictions(predictions: any[]): Promise<any> {
+    try {
+      return await chargebackPredictionsCollection.insertMany(predictions);
+    } catch (error) {
+      console.error("Error inserting chargeback predictions:", error);
+      throw error;
+    }
+  }
+
+  static async insertManySubscriptionForecasts(forecasts: any[]): Promise<any> {
+    try {
+      return await subscriptionForecastsCollection.insertMany(forecasts);
+    } catch (error) {
+      console.error("Error inserting subscription forecasts:", error);
+      throw error;
+    }
+  }
+
+  // Clear all collections (for testing/resetting)
+  static async clearAllCollections(): Promise<void> {
+    try {
+      await Promise.all([
+        transactionsCollection.deleteMany({}),
+        customersCollection.deleteMany({}),
+        fraudResultsCollection.deleteMany({}),
+        subscriptionsCollection.deleteMany({}),
+        chargebackPredictionsCollection.deleteMany({}),
+        subscriptionForecastsCollection.deleteMany({})
+      ]);
+      console.log("All collections cleared successfully");
+    } catch (error) {
+      console.error("Error clearing collections:", error);
+      throw error;
+    }
+  }
+
   // Analytics and aggregation functions
   static async getTransactionStats() {
     try {

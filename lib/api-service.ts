@@ -474,6 +474,8 @@ export class ApiService {
   }
 
   static getStatusColor(status: string): string {
+    if (!status) return 'text-gray-600'
+    
     switch (status.toLowerCase()) {
       case 'succeeded':
       case 'completed':

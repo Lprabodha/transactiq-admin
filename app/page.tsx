@@ -13,6 +13,7 @@ import {
     FraudTrend,
     RiskByGateway,
     ChargebackPrediction,
+    TransactionVolume,
 } from "@/components/dashboard-charts";
 import { RecentActivity } from "@/components/recent-activity";
 import { ApiService, DashboardStats } from "@/lib/api-service";
@@ -98,6 +99,7 @@ export default function DashboardPage() {
             </div>
         );
     }
+
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -232,7 +234,7 @@ export default function DashboardPage() {
                             <CardHeader>
                                 <CardTitle>Fraud Trend</CardTitle>
                                 <CardDescription>
-                                    Daily fraud detection rate over the past 30 days
+                                    Daily fraud detection rate based on available transaction data
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="pl-2">
@@ -254,13 +256,13 @@ export default function DashboardPage() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4">
                             <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
+                                <CardTitle>Transaction Volume</CardTitle>
                                 <CardDescription>
-                                    Latest webhook events and system notifications
+                                    Daily transaction volume based on available transaction data
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <RecentActivity />
+                            <CardContent className="pl-2">
+                                <TransactionVolume />
                             </CardContent>
                         </Card>
                         <Card className="col-span-3">
@@ -275,22 +277,31 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        <Card className="col-span-7">
+                            <CardHeader>
+                                <CardTitle>Recent Activity</CardTitle>
+                                <CardDescription>
+                                    Latest webhook events and system notifications
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <RecentActivity />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </TabsContent>
                 <TabsContent value="analytics" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4">
                             <CardHeader>
-                                <CardTitle>Advanced Analytics</CardTitle>
+                                <CardTitle>Advanced Fraud Analytics</CardTitle>
                                 <CardDescription>
                                     Detailed analysis of fraud patterns and trends
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="pl-2">
-                                <div className="h-[300px] flex items-center justify-center border rounded-md">
-                                    <p className="text-muted-foreground">
-                                        Advanced analytics content
-                                    </p>
-                                </div>
+                                <FraudTrend />
                             </CardContent>
                         </Card>
                         <Card className="col-span-3">
@@ -301,11 +312,31 @@ export default function DashboardPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px] flex items-center justify-center border rounded-md">
-                                    <p className="text-muted-foreground">
-                                        Risk distribution chart
-                                    </p>
-                                </div>
+                                <RiskByGateway />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        <Card className="col-span-4">
+                            <CardHeader>
+                                <CardTitle>Revenue Analytics</CardTitle>
+                                <CardDescription>
+                                    Transaction volume and revenue trends
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pl-2">
+                                <TransactionVolume />
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-3">
+                            <CardHeader>
+                                <CardTitle>Payment Method Analysis</CardTitle>
+                                <CardDescription>
+                                    Distribution of payment methods and chargeback risks
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ChargebackPrediction />
                             </CardContent>
                         </Card>
                     </div>
@@ -321,7 +352,26 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px] flex items-center justify-center border rounded-md">
-                                    <p className="text-muted-foreground">Reports list</p>
+                                    <div className="text-center">
+                                        <svg
+                                            className="mx-auto h-12 w-12 text-muted-foreground"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            aria-hidden="true"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                            />
+                                        </svg>
+                                        <h3 className="mt-2 text-sm font-medium text-muted-foreground">No reports available</h3>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Reports will appear here once generated.
+                                        </p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -334,9 +384,26 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px] flex items-center justify-center border rounded-md">
-                                    <p className="text-muted-foreground">
-                                        Report scheduling form
-                                    </p>
+                                    <div className="text-center">
+                                        <svg
+                                            className="mx-auto h-12 w-12 text-muted-foreground"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            aria-hidden="true"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                        <h3 className="mt-2 text-sm font-medium text-muted-foreground">Report scheduling</h3>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Configure automated reports coming soon.
+                                        </p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

@@ -49,7 +49,7 @@ export function CustomerTransactionsDialog({
         if (response.success && response.data) {
           // Filter transactions to only show ones that match this customer's email
           const customerTransactions = response.data.filter(
-            (transaction) => transaction.email?.toLowerCase() === customer.email?.toLowerCase()
+            (transaction) => (transaction.email || '').toLowerCase() === (customer.email || '').toLowerCase()
           )
           setTransactions(customerTransactions)
         } else {
@@ -77,17 +77,19 @@ export function CustomerTransactionsDialog({
   }
 
   const getStatusBadgeVariant = (status: string) => {
+    if (!status) return "outline"
+    
     switch (status.toLowerCase()) {
-      case "completed":
       case "succeeded":
-        return "default" as const
+      case "completed":
+      case "paid":
+        return "default"
       case "pending":
-        return "secondary" as const
+        return "secondary"
       case "failed":
-      case "canceled":
-        return "destructive" as const
+        return "destructive"
       default:
-        return "outline" as const
+        return "outline"
     }
   }
 
