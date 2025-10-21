@@ -525,16 +525,59 @@ export class PaymentIntelligenceDB {
             canceledSubscriptions: {
               $sum: { $cond: [{ $eq: ["$status", "canceled"] }, 1, 0] }
             },
-            totalRevenue: { $sum: "$price_amount" }
+            totalRevenue: { $sum: "$price_amount" },
+            // Calculate MRR from active subscriptions only
+            mrr: {
+              $sum: {
+                $cond: [
+                  { $eq: ["$status", "active"] },
+                  {
+                    $cond: [
+                      { $eq: ["$interval", "month"] },
+                      { $multiply: ["$price_amount", "$quantity"] },
+                      {
+                        $cond: [
+                          { $eq: ["$interval", "year"] },
+                          { $divide: [{ $multiply: ["$price_amount", "$quantity"] }, 12] },
+                          {
+                            $cond: [
+                              { $eq: ["$interval", "week"] },
+                              { $multiply: [{ $multiply: ["$price_amount", "$quantity"] }, 4.33] },
+                              { $multiply: [{ $multiply: ["$price_amount", "$quantity"] }, 30] }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  0
+                ]
+              }
+            }
           }
         }
       ]).toArray();
 
-      return stats[0] || {
+      const result = stats[0] || {
         totalSubscriptions: 0,
         activeSubscriptions: 0,
         canceledSubscriptions: 0,
-        totalRevenue: 0
+        totalRevenue: 0,
+        mrr: 0
+      };
+
+      // Calculate additional metrics
+      const arr = result.mrr * 12; // Annual Recurring Revenue
+      const churnRate = result.totalSubscriptions > 0 
+        ? (result.canceledSubscriptions / result.totalSubscriptions) * 100 
+        : 0;
+
+      return {
+        ...result,
+        arr: Math.round(arr * 100) / 100,
+        churnRate: Math.round(churnRate * 100) / 100,
+        mrr: Math.round(result.mrr * 100) / 100,
+        totalRevenue: Math.round(result.totalRevenue * 100) / 100
       };
     } catch (error) {
       console.error("Error fetching subscription stats:", error);

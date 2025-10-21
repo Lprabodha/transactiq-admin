@@ -15,27 +15,69 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertTriangle, Shield } from "lucide-react"
+import { AlertTriangle, Shield, Loader2 } from "lucide-react"
+import { ApiService } from "@/lib/api-service"
+import { toast } from "sonner"
 
 interface MarkTransactionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   transactionId: string | null
   isSafe: boolean
+  onSuccess?: () => void
 }
 
-export function MarkTransactionDialog({ open, onOpenChange, transactionId, isSafe }: MarkTransactionDialogProps) {
+export function MarkTransactionDialog({ open, onOpenChange, transactionId, isSafe, onSuccess }: MarkTransactionDialogProps) {
   const [notes, setNotes] = useState("")
   const [retrainModel, setRetrainModel] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the data to your API
-    console.log("Transaction marked:", { transactionId, isSafe, notes, retrainModel })
-    // Reset form and close dialog
-    setNotes("")
-    setRetrainModel(true)
-    onOpenChange(false)
+    
+    if (!transactionId) {
+      toast.error("Error", { description: "No transaction ID provided" })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = isSafe 
+        ? await ApiService.markTransactionAsSafe(transactionId, notes, retrainModel)
+        : await ApiService.markTransactionAsFraud(transactionId, notes, retrainModel)
+
+      if (response.success) {
+        toast.success(
+          isSafe ? "Transaction Marked as Safe" : "Transaction Marked as Fraud",
+          { 
+            description: `Successfully updated transaction ${transactionId}`,
+            icon: isSafe ? <Shield className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />
+          }
+        )
+        
+        // Reset form
+        setNotes("")
+        setRetrainModel(true)
+        onOpenChange(false)
+        
+        // Call success callback to refresh data
+        if (onSuccess) {
+          onSuccess()
+        }
+      } else {
+        toast.error("Failed to Update Transaction", {
+          description: response.error || "An error occurred while updating the transaction"
+        })
+      }
+    } catch (error) {
+      console.error("Error marking transaction:", error)
+      toast.error("Error", {
+        description: "An unexpected error occurred"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -82,11 +124,16 @@ export function MarkTransactionDialog({ open, onOpenChange, transactionId, isSaf
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" variant={isSafe ? "default" : "destructive"} className="gap-1">
-              {isSafe ? (
+            <Button type="submit" variant={isSafe ? "default" : "destructive"} className="gap-2" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : isSafe ? (
                 <>
                   <Shield className="h-4 w-4" />
                   <span>Confirm Safe</span>

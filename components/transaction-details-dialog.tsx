@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,14 +13,17 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Download, Shield, AlertTriangle, Info } from "lucide-react"
-import { type Transaction, ApiService } from "@/lib/api-service"
+import { Download, Shield, AlertTriangle, Info, AlertCircle, CheckCircle } from "lucide-react"
+import { type Transaction } from "@/lib/api-service"
+import { MarkTransactionDialog } from "@/components/mark-transaction-dialog"
+import { toast } from "sonner"
 
 interface TransactionDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   transactionId: string | null
   transaction: Transaction | null
+  onTransactionUpdate?: () => void
 }
 
 export function TransactionDetailsDialog({
@@ -27,29 +31,68 @@ export function TransactionDetailsDialog({
   onOpenChange,
   transactionId,
   transaction,
+  onTransactionUpdate,
 }: TransactionDetailsDialogProps) {
+  const [markDialog, setMarkDialog] = useState({ open: false, isSafe: false })
+
   if (!transaction) {
     return null
   }
 
-  const formatDate = (dateString: string | null | undefined) => {
-    // Handle null, undefined, or empty string
-    if (!dateString) {
-      return 'N/A';
+  const handleExportTransaction = () => {
+    try {
+      // Create CSV content from transaction data
+      const fields = [
+        'transaction_id', 'email', 'amount', 'currency', 'status', 'gateway',
+        'payment_method', 'card_brand', 'risk_score', 'chargeback_confidence',
+        'created_at', 'ip_address', 'billing_address_country'
+      ]
+      
+      const headers = fields.map(f => f.replace(/_/g, ' ').toUpperCase())
+      const values = fields.map(f => {
+        const value = (transaction as any)[f]
+        if (value === null || value === undefined) return ''
+        const stringValue = String(value)
+        // Escape commas and quotes
+        if (stringValue.includes(',') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`
+        }
+        return stringValue
+      })
+      
+      const csvContent = [headers.join(','), values.join(',')].join('\n')
+      
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `transaction-${transaction.transaction_id}-${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast.success('Export Successful', {
+        description: 'Transaction details exported to CSV'
+      })
+    } catch (error) {
+      console.error('[TransactionDetails] Export error:', error)
+      toast.error('Export Failed', {
+        description: 'Failed to export transaction details'
+      })
     }
+  }
 
-    const date = new Date(dateString);
-    
-    // Check if the date is valid
-    if (isNaN(date.getTime())) {
-      console.warn('Invalid date value:', dateString);
-      return 'Invalid Date';
-    }
-    
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid Date'
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(date);
+    }).format(date)
   }
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -66,42 +109,21 @@ export function TransactionDetailsDialog({
   }
 
   const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "completed":
-      case "paid":
-        return "default"
-      case "pending":
-        return "secondary"
-      case "failed":
-        return "destructive"
-      default:
-        return "outline"
+    const statusMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      completed: "default",
+      paid: "default",
+      pending: "secondary",
+      failed: "destructive",
     }
+    return statusMap[status] || "outline"
   }
 
-  const getGatewayBadge = (gateway: string) => {
-    return (
-      <Badge
-        variant="outline"
-        className={`${
-          gateway === "Stripe"
-            ? "bg-primary/10 text-primary border-primary/20"
-            : "bg-secondary/10 text-secondary border-secondary/20"
-        }`}
-      >
-        {gateway}
-      </Badge>
-    )
-  }
-
-  const getPriorityBadge = (priority: string) => {
-    const variant = priority === "high" ? "destructive" : priority === "medium" ? "default" : "secondary"
-    return (
-      <Badge variant={variant}>
-        {priority.charAt(0).toUpperCase() + priority.slice(1)} Priority
-      </Badge>
-    )
-  }
+  const DetailRow = ({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) => (
+    <div className={className}>
+      <p className="text-sm font-medium text-muted-foreground mb-1">{label}</p>
+      <div className="text-sm font-medium">{value}</div>
+    </div>
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -122,136 +144,151 @@ export function TransactionDetailsDialog({
         </DialogHeader>
         
         <ScrollArea className="max-h-[60vh] pr-4">
-          <div className="grid gap-6 py-4">
+          <div className="space-y-6 py-4">
             {/* Basic Transaction Info */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Transaction ID</p>
-                <p className="text-sm font-bold">{transaction.transaction_id}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Date</p>
-                <p className="text-sm">{formatDate(transaction.created_at)}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                <p className="text-sm font-bold">{formatCurrency(transaction.amount, transaction.currency)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Gateway</p>
-                {getGatewayBadge(transaction.gateway)}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Customer Email</p>
-                <p className="text-sm">{transaction.billing_email || transaction.email}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">IP Address</p>
-                <p className="text-sm">{transaction.ip_address}</p>
-              </div>
+              <DetailRow label="Transaction ID" value={<span className="font-mono">{transaction.transaction_id}</span>} />
+              <DetailRow label="Date" value={formatDate(transaction.created_at)} />
+              <DetailRow 
+                label="Amount" 
+                value={<span className="text-lg font-bold text-primary">{formatCurrency(transaction.amount, transaction.currency)}</span>} 
+              />
+              <DetailRow 
+                label="Gateway" 
+                value={
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    {transaction.gateway}
+                  </Badge>
+                } 
+              />
+              <DetailRow label="Customer Email" value={transaction.billing_email || transaction.email || 'N/A'} />
+              <DetailRow label="IP Address" value={transaction.ip_address || 'N/A'} />
             </div>
 
             {/* Payment Details */}
             <Separator />
             <div>
-              <h3 className="text-lg font-medium mb-3">Payment Details</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Info className="h-5 w-5 text-primary" />
+                Payment Details
+              </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Payment Method</p>
-                  <p className="text-sm capitalize">{transaction.payment_method}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Card Brand</p>
-                  <p className="text-sm capitalize">{transaction.card_brand}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Card Country</p>
-                  <p className="text-sm">{transaction.card_country}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Funding Type</p>
-                  <p className="text-sm capitalize">{transaction.funding_type}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">CVC Check</p>
-                  <Badge variant={transaction.cvc_check === "pass" ? "default" : "destructive"}>
-                    {transaction.cvc_check}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">3D Secure</p>
-                  <p className="text-sm">{transaction.three_d_secure || "Not used"}</p>
-                </div>
+                <DetailRow label="Payment Method" value={<span className="capitalize">{transaction.payment_method}</span>} />
+                <DetailRow label="Card Brand" value={<span className="capitalize">{transaction.card_brand}</span>} />
+                <DetailRow label="Card Country" value={transaction.card_country || 'N/A'} />
+                <DetailRow label="Funding Type" value={<span className="capitalize">{transaction.funding_type || 'N/A'}</span>} />
+                <DetailRow 
+                  label="CVC Check" 
+                  value={
+                    <Badge variant={transaction.cvc_check === "pass" ? "default" : "destructive"} className="capitalize">
+                      {transaction.cvc_check || 'N/A'}
+                    </Badge>
+                  } 
+                />
+                <DetailRow label="3D Secure" value={transaction.three_d_secure || "Not used"} />
               </div>
             </div>
 
             {/* Risk Assessment */}
             <Separator />
             <div>
-              <h3 className="text-lg font-medium mb-3">Risk Assessment</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-orange-500" />
+                Risk Assessment
+              </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fraud Risk Score</p>
-                  <Badge variant={getRiskBadgeVariant(transaction.risk_score)} className="mt-1">
-                    {transaction.risk_score}%
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Chargeback Confidence</p>
-                  <Badge variant={getRiskBadgeVariant(transaction.chargeback_confidence * 100)} className="mt-1">
-                    {(transaction.chargeback_confidence * 100).toFixed(1)}%
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
-                  <Badge variant={transaction.risk_level === "elevated" ? "destructive" : "default"}>
-                    {transaction.risk_level}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Chargeback Predicted</p>
-                  <Badge variant={transaction.chargeback_predicted ? "destructive" : "default"}>
-                    {transaction.chargeback_predicted ? "Yes" : "No"}
-                  </Badge>
-                </div>
+                <DetailRow 
+                  label="Fraud Risk Score" 
+                  value={
+                    <Badge variant={getRiskBadgeVariant(transaction.risk_score)} className="text-base">
+                      {transaction.risk_score}%
+                    </Badge>
+                  } 
+                />
+                <DetailRow 
+                  label="Chargeback Confidence" 
+                  value={
+                    <Badge variant={getRiskBadgeVariant(transaction.chargeback_confidence * 100)} className="text-base">
+                      {(transaction.chargeback_confidence * 100).toFixed(1)}%
+                    </Badge>
+                  } 
+                />
+                <DetailRow 
+                  label="Risk Level" 
+                  value={
+                    <Badge variant={transaction.risk_level === "elevated" ? "destructive" : "default"} className="capitalize">
+                      {transaction.risk_level}
+                    </Badge>
+                  } 
+                />
+                <DetailRow 
+                  label="Chargeback Predicted" 
+                  value={
+                    <Badge variant={transaction.chargeback_predicted ? "destructive" : "default"}>
+                      {transaction.chargeback_predicted ? "Yes" : "No"}
+                    </Badge>
+                  } 
+                />
               </div>
             </div>
 
-            {/* AI Recommendations */}
+            {/* Recommendations */}
             {transaction.recommendations && (
               <>
                 <Separator />
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Info className="h-5 w-5" />
-                    <h3 className="text-lg font-medium">AI Recommendations</h3>
-                    {getPriorityBadge(transaction.recommendations.priority)}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                      Recommendations
+                    </h3>
+                    <Badge 
+                      variant={
+                        transaction.recommendations.priority === "high" ? "destructive" : 
+                        transaction.recommendations.priority === "medium" ? "default" : 
+                        "secondary"
+                      }
+                      className="capitalize"
+                    >
+                      {transaction.recommendations.priority} Priority
+                    </Badge>
                   </div>
                   
                   {/* Summary */}
-                  <div className="mb-4 p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Risk Summary</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Fraud Detection: {transaction.recommendations.summary.fraud_detected ? "Yes" : "No"}</div>
-                      <div>Fraud Confidence: {(transaction.recommendations.summary.fraud_confidence * 100).toFixed(1)}%</div>
-                      <div>Fraud Level: <span className="capitalize">{transaction.recommendations.summary.fraud_level}</span></div>
-                      <div>Chargeback Risk: {(transaction.recommendations.summary.chargeback_confidence * 100).toFixed(1)}%</div>
+                  <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-3">Risk Summary</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fraud Detection:</span>
+                        <Badge variant={transaction.recommendations.summary.fraud_detected ? "destructive" : "default"} className="h-6">
+                          {transaction.recommendations.summary.fraud_detected ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fraud Confidence:</span>
+                        <span className="font-medium">{(transaction.recommendations.summary.fraud_confidence * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fraud Level:</span>
+                        <span className="font-medium capitalize">{transaction.recommendations.summary.fraud_level}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Chargeback Risk:</span>
+                        <span className="font-medium">{(transaction.recommendations.summary.chargeback_confidence * 100).toFixed(1)}%</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Risk Factors */}
                   {transaction.recommendations.reasons.length > 0 && (
                     <div className="mb-4">
-                      <h4 className="font-medium mb-2">Risk Factors Detected</h4>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
+                      <h4 className="font-semibold mb-2">Risk Factors Detected</h4>
+                      <ul className="space-y-2">
                         {transaction.recommendations.reasons.map((reason, index) => (
-                          <li key={index} className="text-muted-foreground">{reason}</li>
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                            <span>{reason}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -260,10 +297,13 @@ export function TransactionDetailsDialog({
                   {/* Recommended Actions */}
                   {transaction.recommendations.recommended_actions.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-2">Recommended Actions</h4>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
+                      <h4 className="font-semibold mb-2">Recommended Actions</h4>
+                      <ul className="space-y-2">
                         {transaction.recommendations.recommended_actions.map((action, index) => (
-                          <li key={index} className="text-muted-foreground">{action}</li>
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{action}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -275,71 +315,76 @@ export function TransactionDetailsDialog({
             {/* Billing Information */}
             <Separator />
             <div>
-              <h3 className="text-lg font-medium mb-3">Billing Information</h3>
+              <h3 className="text-lg font-semibold mb-4">Billing Information</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Name</p>
-                  <p className="text-sm">{transaction.billing_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                  <p className="text-sm">{transaction.billing_phone || "N/A"}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm font-medium text-muted-foreground">Address</p>
-                  <p className="text-sm">
-                    {(() => {
-                      const billingAddress = [
-                        transaction.billing_address_line1,
-                        transaction.billing_address_line2,
-                        transaction.billing_address_city,
-                        transaction.billing_address_state,
-                        transaction.billing_address_postal_code,
-                        transaction.billing_address_country
-                      ].filter(Boolean).join(", ");
-
-                      if (billingAddress) {
-                        return billingAddress;
-                      }
-
-                      // If no billing address, try to show enhanced customer location
-                      const enhancedTransaction = transaction as Transaction & { enhancedCustomerInfo?: Partial<any> }
-                      const location = ApiService.getBestLocation(enhancedTransaction);
-                      
-                      if (location) {
-                        const locationStr = [location.city, location.state, location.country].filter(Boolean).join(", ");
-                        return locationStr ? `${locationStr} (from customer data)` : "N/A";
-                      }
-
-                      return "N/A";
-                    })()}
-                  </p>
-                </div>
+                <DetailRow label="Name" value={transaction.billing_name || "N/A"} />
+                <DetailRow label="Phone" value={transaction.billing_phone || "N/A"} />
+                <DetailRow 
+                  label="Address" 
+                  value={
+                    [
+                      transaction.billing_address_line1,
+                      transaction.billing_address_line2,
+                      transaction.billing_address_city,
+                      transaction.billing_address_state,
+                      transaction.billing_address_postal_code,
+                      transaction.billing_address_country
+                    ].filter(Boolean).join(", ") || "N/A"
+                  } 
+                  className="col-span-2"
+                />
               </div>
             </div>
           </div>
         </ScrollArea>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+        <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" className="flex items-center gap-1 flex-1 sm:flex-auto">
+          <div className="flex gap-2 flex-1 sm:flex-none">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={handleExportTransaction}
+            >
               <Download className="h-4 w-4" />
-              <span>Export</span>
+              Export
             </Button>
-            <Button variant="outline" className="flex items-center gap-1 flex-1 sm:flex-auto">
-              <Shield className="h-4 w-4 text-primary" />
-              <span>Mark Safe</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => setMarkDialog({ open: true, isSafe: true })}
+            >
+              <Shield className="h-4 w-4" />
+              Mark Safe
             </Button>
-            <Button variant="outline" className="flex items-center gap-1 flex-1 sm:flex-auto">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span>Mark Fraud</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setMarkDialog({ open: true, isSafe: false })}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Mark Fraud
             </Button>
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <MarkTransactionDialog
+        open={markDialog.open}
+        onOpenChange={(open) => setMarkDialog({ ...markDialog, open })}
+        transactionId={transaction.transaction_id}
+        isSafe={markDialog.isSafe}
+        onSuccess={() => {
+          if (onTransactionUpdate) {
+            onTransactionUpdate()
+          }
+        }}
+      />
     </Dialog>
   )
 }

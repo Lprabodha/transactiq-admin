@@ -1,9 +1,17 @@
 import { ExportOptions, TransactionFilters } from '@/components/export-reports'
+import { toast } from 'sonner'
+
+/**
+ * Export Utilities
+ * Handles data export to CSV, Excel, and PDF formats
+ */
 
 // CSV Export
 export function exportToCSV(data: any[], options: ExportOptions): void {
   if (data.length === 0) {
-    alert('No data to export')
+    toast.error('Export Failed', {
+      description: 'No data available to export'
+    })
     return
   }
 
@@ -39,35 +47,51 @@ export function exportToCSV(data: any[], options: ExportOptions): void {
     )
   ].join('\n')
 
-  // Create and download file
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${options.reportType}-${new Date().toISOString().split('T')[0]}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  try {
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${options.reportType}-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    toast.success('Export Successful', {
+      description: `CSV file downloaded with ${data.length} records`
+    })
+  } catch (error) {
+    console.error('[Export] CSV export error:', error)
+    toast.error('Export Failed', {
+      description: 'Failed to create CSV file. Please try again.'
+    })
+  }
 }
 
 // Excel Export (using SheetJS library)
 export async function exportToExcel(data: any[], options: ExportOptions): Promise<void> {
+  if (data.length === 0) {
+    toast.error('Export Failed', {
+      description: 'No data available to export'
+    })
+    return
+  }
+
   try {
     // Dynamic import to avoid bundling issues
     const XLSX = await import('xlsx')
-    
-    if (data.length === 0) {
-      alert('No data to export')
-      return
-    }
 
     // Filter data based on selected fields
     const filteredData = data.map(item => {
       const filteredItem: any = {}
       options.includeFields.forEach(field => {
         if (item[field] !== undefined) {
-          filteredItem[field] = item[field]
+          // Format field name for better readability
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          filteredItem[fieldName] = item[field]
         }
       })
       return filteredItem
@@ -78,7 +102,7 @@ export async function exportToExcel(data: any[], options: ExportOptions): Promis
     const worksheet = XLSX.utils.json_to_sheet(filteredData)
 
     // Auto-size columns
-    const columnWidths = options.includeFields.map(field => {
+    const columnWidths = Object.keys(filteredData[0] || {}).map(field => {
       const maxLength = Math.max(
         field.length,
         ...filteredData.map(row => String(row[field] || '').length)
@@ -88,30 +112,38 @@ export async function exportToExcel(data: any[], options: ExportOptions): Promis
     worksheet['!cols'] = columnWidths
 
     // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, options.reportType)
+    XLSX.utils.book_append_sheet(workbook, worksheet, options.reportType.substring(0, 31))
 
     // Generate filename
     const filename = `${options.reportType}-${new Date().toISOString().split('T')[0]}.xlsx`
 
     // Save file
     XLSX.writeFile(workbook, filename)
+    
+    toast.success('Export Successful', {
+      description: `Excel file downloaded with ${data.length} records`
+    })
   } catch (error) {
-    console.error('Excel export failed:', error)
-    alert('Excel export failed. Please try CSV export instead.')
+    console.error('[Export] Excel export error:', error)
+    toast.error('Export Failed', {
+      description: 'Failed to create Excel file. Please try CSV export instead.'
+    })
   }
 }
 
 // PDF Export (using jsPDF library)
 export async function exportToPDF(data: any[], options: ExportOptions): Promise<void> {
+  if (data.length === 0) {
+    toast.error('Export Failed', {
+      description: 'No data available to export'
+    })
+    return
+  }
+
   try {
     // Dynamic import to avoid bundling issues
     const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    if (data.length === 0) {
-      alert('No data to export')
-      return
-    }
+    const autoTable = (await import('jspdf-autotable')).default
 
     // Create PDF document
     const doc = new jsPDF()
@@ -152,7 +184,7 @@ export async function exportToPDF(data: any[], options: ExportOptions): Promise<
       })
     )
 
-    // Add table to PDF
+    // Add table to PDF using autoTable
     (doc as any).autoTable({
       head: [headers],
       body: tableData,
@@ -162,25 +194,46 @@ export async function exportToPDF(data: any[], options: ExportOptions): Promise<
         cellPadding: 2
       },
       headStyles: {
-        fillColor: [41, 128, 185],
+        fillColor: [16, 185, 129], // Emerald green
         textColor: 255
       },
       alternateRowStyles: {
         fillColor: [245, 245, 245]
-      }
+      },
+      margin: { top: 40 }
     })
 
     // Generate filename and save
     const filename = `${options.reportType}-${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(filename)
+    
+    toast.success('Export Successful', {
+      description: `PDF file downloaded with ${data.length} records`
+    })
   } catch (error) {
-    console.error('PDF export failed:', error)
-    alert('PDF export failed. Please try CSV export instead.')
+    console.error('[Export] PDF export error:', error)
+    toast.error('Export Failed', {
+      description: 'Failed to create PDF file. Please try CSV export instead.'
+    })
   }
 }
 
 // Main export function
 export async function exportData(data: any[], options: ExportOptions): Promise<void> {
+  if (!data || data.length === 0) {
+    toast.error('Export Failed', {
+      description: 'No data available to export'
+    })
+    return
+  }
+
+  if (!options.includeFields || options.includeFields.length === 0) {
+    toast.error('Export Failed', {
+      description: 'Please select at least one field to export'
+    })
+    return
+  }
+
   try {
     switch (options.format) {
       case 'csv':
@@ -196,8 +249,10 @@ export async function exportData(data: any[], options: ExportOptions): Promise<v
         exportToCSV(data, options)
     }
   } catch (error) {
-    console.error('Export failed:', error)
-    alert('Export failed. Please try again.')
+    console.error('[Export] General export error:', error)
+    toast.error('Export Failed', {
+      description: 'An unexpected error occurred. Please try again.'
+    })
   }
 }
 

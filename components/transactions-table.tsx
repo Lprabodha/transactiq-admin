@@ -625,6 +625,25 @@ export function TransactionsTable() {
           onOpenChange={(open) => setDetailsDialog({ ...detailsDialog, open })}
           transactionId={detailsDialog.transaction.transaction_id}
           transaction={detailsDialog.transaction}
+          onTransactionUpdate={() => {
+            // Refresh transactions data after marking
+            async function refreshTransactions() {
+              try {
+                const response = await ApiService.getTransactions({
+                  limit: itemsPerPage,
+                  skip: (currentPage - 1) * itemsPerPage,
+                  search: searchQuery || undefined,
+                })
+                if (response.success && response.data) {
+                  setTransactions(response.data)
+                  setTotalCount(response.totalCount || 0)
+                }
+              } catch (err) {
+                console.error('Error refreshing transactions:', err)
+              }
+            }
+            refreshTransactions()
+          }}
         />
       )}
 

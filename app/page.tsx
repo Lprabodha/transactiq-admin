@@ -19,6 +19,7 @@ import { RecentActivity } from "@/components/recent-activity";
 import { ApiService, DashboardStats } from "@/lib/api-service";
 import { ExportReports, ExportOptions } from "@/components/export-reports"
 import { exportData, filterDataForExport } from "@/utils/export-utils"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
     const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -38,23 +39,19 @@ export default function DashboardPage() {
             try {
                 setLoading(true);
                 setError(null);
-                console.log('Fetching dashboard data...');
 
                 const response = await ApiService.getDashboardStats(true);
-                console.log('Dashboard API response:', response);
 
                 if (response.success && response.data) {
                     setDashboardStats(response.data);
-                    console.log('Dashboard stats set successfully:', response.data);
                 } else {
                     const errorMessage = response.error || 'Failed to fetch dashboard data';
-                    console.error('Dashboard API error:', errorMessage, response);
+                    console.error('[Dashboard] API error:', errorMessage);
                     setError(errorMessage);
                 }
             } catch (err) {
-                const errorMessage = 'An error occurred while fetching dashboard data';
-                console.error('Dashboard fetch error:', err);
-                setError(`${errorMessage}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                console.error('[Dashboard] Fetch error:', err);
+                setError('Unable to load dashboard data. Please try refreshing the page.');
             } finally {
                 setLoading(false);
             }
@@ -68,20 +65,23 @@ export default function DashboardPage() {
         try {
             setExportLoading(true)
             
-            // For dashboard exports, we'll export the current dashboard data
-            // This could be enhanced to fetch specific data based on export type
+            toast.info('Preparing Export', {
+                description: 'Fetching data, please wait...'
+            })
+            
             const response = await ApiService.getTransactions({ limit: 1000 })
             
             if (response.success && response.data) {
                 let dataToExport = response.data
                 
+                // Filter data based on report type
                 if (options.reportType === 'fraud-analysis') {
                     dataToExport = response.data.filter((t: any) => 
                         t.fraud_detected || (t.risk_score || 0) > 70
                     )
                 } else if (options.reportType === 'chargeback-predictions') {
                     dataToExport = response.data.filter((t: any) => 
-                        t.chargeback_predicted || (t.chargeback_confidence || 0) > 60
+                        t.chargeback_predicted || (t.chargeback_confidence || 0) > 0.6
                     )
                 }
                 
@@ -89,15 +89,21 @@ export default function DashboardPage() {
                     const filteredData = filterDataForExport(dataToExport, options)
                     await exportData(filteredData, options)
                 } else {
-                    alert('No data available for export')
+                    toast.warning('No Data Found', {
+                        description: 'No data matches the selected filters. Try adjusting your filters.'
+                    })
                 }
             } else {
-                alert('No data available for export')
+                toast.error('Export Failed', {
+                    description: response.error || 'Failed to fetch data for export'
+                })
             }
             
         } catch (error) {
-            console.error('Export failed:', error)
-            alert('Export failed. Please try again.')
+            console.error('[Dashboard] Export error:', error)
+            toast.error('Export Failed', {
+                description: 'An unexpected error occurred. Please try again.'
+            })
         } finally {
             setExportLoading(false)
         }
@@ -247,7 +253,7 @@ export default function DashboardPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
-                                    Projected MRR
+                                    Monthly Recurring Revenue
                                 </CardTitle>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -264,14 +270,133 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {ApiService.formatCurrency(dashboardStats?.transactions.totalRevenue || 0)}
+                                    {ApiService.formatCurrency(dashboardStats?.subscriptions.mrr || 0)}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Total revenue
+                                    {dashboardStats?.subscriptions.activeSubscriptions || 0} active subscriptions
                                 </p>
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Revenue Metrics Row */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Revenue
+                                </CardTitle>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    className="h-4 w-4 text-muted-foreground"
+                                >
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                </svg>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {ApiService.formatCurrency(dashboardStats?.transactions.totalRevenue || 0)}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    From {dashboardStats?.transactions.totalTransactions.toLocaleString() || 0} transactions
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Annual Recurring Revenue
+                                </CardTitle>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    className="h-4 w-4 text-muted-foreground"
+                                >
+                                    <path d="M3 3v18h18" />
+                                    <path d="m19 9-5 5-4-4-3 3" />
+                                </svg>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {ApiService.formatCurrency(dashboardStats?.subscriptions.arr || 0)}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Projected annual revenue
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Average Transaction Value
+                                </CardTitle>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    className="h-4 w-4 text-muted-foreground"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 6v6l4 2" />
+                                </svg>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {ApiService.formatCurrency(dashboardStats?.transactions.averageTransactionValue || 0)}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Per transaction
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Churn Rate
+                                </CardTitle>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    className="h-4 w-4 text-muted-foreground"
+                                >
+                                    <path d="M3 3v18h18" />
+                                    <path d="m19 15-5-5-4 4-3-3" />
+                                </svg>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {dashboardStats?.subscriptions.churnRate.toFixed(1)}%
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {dashboardStats?.subscriptions.canceledSubscriptions || 0} canceled subscriptions
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4">
                             <CardHeader>

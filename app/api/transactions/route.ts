@@ -119,3 +119,88 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    await connectPaymentIntelligenceDB();
+    
+    const body = await request.json();
+    const { transaction_id, action, notes, retrain_model } = body;
+    
+    // Validate required fields
+    if (!transaction_id || !action) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Missing required fields: transaction_id, action' 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!['mark_safe', 'mark_fraud'].includes(action)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid action. Must be "mark_safe" or "mark_fraud"' 
+        },
+        { status: 400 }
+      );
+    }
+
+    const now = new Date();
+    const updateData: any = {
+      updated_at: now,
+      manual_review: {
+        reviewed: true,
+        reviewed_at: now,
+        marked_as: action === 'mark_safe' ? 'safe' : 'fraud',
+        notes: notes || '',
+        retrain_model: retrain_model !== false
+      }
+    };
+
+    // Update fraud-related fields based on action
+    if (action === 'mark_fraud') {
+      updateData.fraud_detected = true;
+      updateData.risk_level = 'high';
+      updateData.risk_score = Math.max(updateData.risk_score || 0, 90);
+    } else {
+      updateData.fraud_detected = false;
+      updateData.risk_level = 'low';
+      updateData.risk_score = Math.min(updateData.risk_score || 0, 10);
+    }
+
+    const result = await transactionsCollection.updateOne(
+      { transaction_id },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Transaction not found' 
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Transaction marked as ${action === 'mark_safe' ? 'safe' : 'fraud'} successfully`,
+      data: { transaction_id, ...updateData }
+    });
+
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to update transaction',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

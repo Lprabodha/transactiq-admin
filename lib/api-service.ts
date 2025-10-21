@@ -27,6 +27,9 @@ export interface DashboardStats {
     activeSubscriptions: number;
     canceledSubscriptions: number;
     totalRevenue: number;
+    mrr: number;
+    arr: number;
+    churnRate: number;
   };
   fraud: {
     totalChecks: number;
@@ -256,6 +259,30 @@ export class ApiService {
     return this.fetchApi<Transaction>('/transactions', {
       method: 'POST',
       body: JSON.stringify(transactionData),
+    });
+  }
+
+  static async markTransactionAsSafe(transactionId: string, notes?: string, retrainModel: boolean = true): Promise<ApiResponse<any>> {
+    return this.fetchApi('/transactions', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        transaction_id: transactionId,
+        action: 'mark_safe',
+        notes,
+        retrain_model: retrainModel,
+      }),
+    });
+  }
+
+  static async markTransactionAsFraud(transactionId: string, notes?: string, retrainModel: boolean = true): Promise<ApiResponse<any>> {
+    return this.fetchApi('/transactions', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        transaction_id: transactionId,
+        action: 'mark_fraud',
+        notes,
+        retrain_model: retrainModel,
+      }),
     });
   }
 
