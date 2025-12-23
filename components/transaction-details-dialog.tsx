@@ -255,32 +255,34 @@ export function TransactionDetailsDialog({
                   </div>
                   
                   {/* Summary */}
-                  <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                    <h4 className="font-semibold mb-3">Risk Summary</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fraud Detection:</span>
-                        <Badge variant={transaction.recommendations.summary.fraud_detected ? "destructive" : "default"} className="h-6">
-                          {transaction.recommendations.summary.fraud_detected ? "Yes" : "No"}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fraud Confidence:</span>
-                        <span className="font-medium">{(transaction.recommendations.summary.fraud_confidence * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fraud Level:</span>
-                        <span className="font-medium capitalize">{transaction.recommendations.summary.fraud_level}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Chargeback Risk:</span>
-                        <span className="font-medium">{(transaction.recommendations.summary.chargeback_confidence * 100).toFixed(1)}%</span>
+                  {transaction.recommendations.summary && (
+                    <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                      <h4 className="font-semibold mb-3">Risk Summary</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fraud Detection:</span>
+                          <Badge variant={transaction.recommendations.summary.fraud_detected ? "destructive" : "default"} className="h-6">
+                            {transaction.recommendations.summary.fraud_detected ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fraud Confidence:</span>
+                          <span className="font-medium">{((transaction.recommendations.summary.fraud_confidence || 0) * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fraud Level:</span>
+                          <span className="font-medium capitalize">{transaction.recommendations.summary.fraud_level || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Chargeback Risk:</span>
+                          <span className="font-medium">{((transaction.recommendations.summary.chargeback_confidence || 0) * 100).toFixed(1)}%</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Risk Factors */}
-                  {transaction.recommendations.reasons.length > 0 && (
+                  {transaction.recommendations.reasons && transaction.recommendations.reasons.length > 0 && (
                     <div className="mb-4">
                       <h4 className="font-semibold mb-2">Risk Factors Detected</h4>
                       <ul className="space-y-2">
@@ -295,7 +297,7 @@ export function TransactionDetailsDialog({
                   )}
 
                   {/* Recommended Actions */}
-                  {transaction.recommendations.recommended_actions.length > 0 && (
+                  {transaction.recommendations.recommended_actions && transaction.recommendations.recommended_actions.length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-2">Recommended Actions</h4>
                       <ul className="space-y-2">

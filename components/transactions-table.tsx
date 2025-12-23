@@ -506,7 +506,7 @@ export function TransactionsTable() {
                         )
                       })()}
                       <span className="text-xs text-muted-foreground">
-                        {transaction.recommendations.recommended_actions.length} actions
+                        {transaction.recommendations.recommended_actions?.length || 0} actions
                       </span>
                     </div>
                   ) : (
